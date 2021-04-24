@@ -1,0 +1,226 @@
+# Fusion Dance spec | 2021-04-22
+
+last time: https://hackmd.io/AHdW4Z6lTAqEfPxEkSuSvQ
+
+open questions:
+- inviting / consent
+- redirects
+- attestation
+  - confirming / denying tombstones (adding meta data)
+  - confirming / denying redirects
+- how we do authorship?
+  - how does it work
+  - is this a core part of the spec?
+  - signing?
+  - checking list of authors?
+
+
+
+## Inviting / Consent
+
+- open (private out of scope for now)
+- linking structure
+- consent
+  - could be similar to attestation?
+
+AGREEMENT: this spec only covers an open fusion/ multi-device
+  - in future we might do something private, but after we have learnt more
+
+
+There are 3 operations:
+  - somebody starts the fusion 
+    - a creation event
+    - could include first invite
+  - you invite people to the structure
+  - consent response(s)
+  
+  
+Do we need a "link" record?
+  - probably not if we have backlinks?
+  - they make lookups easier though????
+  - picture:
+
+```
+     
+      @feedLaptop                                   @feedDesktop
+      -----------------                          -----------------------
+
+         init
+         
+       invite: @feedLaptop, @feedDesktop
+                                                   consent (to invite)
+                                                   
+                                            { type: link,  profile: @fusion, feedId: @feedDesktop }
+         
+```
+
+Two direction we do lookups:
+1. starting with a @feedId, what is the fusion record?
+  - what to display when I see a new device on network
+  - there could be multiple fusionId per feedId
+    - one active, many tombstone
+    - many active
+2. starting with @fusionId, what are the feedIds associated
+  - replication
+
+
+### init
+
+```
+// author: @feedLaptop
+{
+  type: 'fusion/init',
+  id: ????,
+  fusionId: @fusionA, // PublicKey
+  tangle: {
+    fusion: { root: null, previous: null }
+  }
+}
+```
+
+profile stuff as well?
+
+
+### invite
+
+```
+// author: @feedLaptop
+{
+  type: 'fusion/invite',
+  invited: [
+    @feedDesktop,
+    @fusionX    <<   this does not tell you who might need to replicate
+                     need to point to init (message/feed) of @fusionX
+  ],
+  tangle: {
+    fusion: { root: %init, previous: [%init] }
+  }
+}
+```
+
+feeds that are allowed to create an invite message are either the one that created the fusion identity or a feed that has consented an invite mesage
+
+message id is not so useful in these contexts, feedId + seq gives more information
+  - specifically, knowing what to ask for in replicating
+
+does this need to reference the existing members?
+  - if you discover a consent message, and you have the init link (both msgId + feedId)
+  - then you can replicate the feed that initialise. The only person who can initialy invite, is the initialised, so we know we will see invites from them if we replicate them... this lets us follow the trails of invited people and replicated till we complete story
+  
+question: should we include a copy of the private key here (hidden?)
+
+```
+{
+  type: 'fusion/key',
+  secretKey: KEY,
+  tangle: {
+    fusion: { root: %init, previous: [%invite] }  ???
+  },
+  recps: [@fusionA, @feedDesktop, @fusionX]
+}
+```
+
+### consent
+
+scenario1:
+  - public
+  - pointing back to fusion/key? in previous?
+
+scenario2:
+  - public
+  - pointing back to fusion/invite in previous? 
+
+```
+  root <- invite <- inviteKey (leaf?)
+                 <- consent   <- invite
+```
+
+how do we know if the person consenting has really received the inviteKey
+  - the consent could include a signature with a key only the members have...
+    - sign(concat(inviteId, feedId))
+  - question: should there be different signing + encrypting keys?
+
+
+```
+{
+  type: 'fusion/consent',
+  
+
+  tangle: {
+    fusion: { root: %init, previous: [%...] }
+  }
+}
+```
+
+tangle backlinks always follow the "golden rule": always extend from valid messages
+- what about inviteKey?
+  - we can't include this in tangle history, because people not in fusion won't be able to verify that backlink, which then makes the "golden rule" break ... the consent can't be verified...
+
+
+
+
+If someone does not want to be part of a fusion identity, should they be allowed to create a content/deny message?
+  - yes
+  - and we also need to be able to handle consent never happening
+
+
+Because this is primarily about multi-device... we are in control of the latency around each leg of this. specifically we don't need to worry much about having to wait for key-entrust to happen after consent because both devices are probably near us and talking?
+  - we can make a listener for consent, which auto-sends keys
+  - we send keys only after consent, not at same time as invite
+
+
+UPDATED DIAGRAM
+```
+  root <- invite <- consent <- inviteKey (leaf?)
+                            <- invite
+```
+ 
+```
+   @feedLaptop                   @feedDesktop
+   -----------------          -----------------------
+    init
+    invite: @feedDesktop
+                                consent
+    entrust
+                                proof-of-key?
+```
+
+
+### entrust
+
+```
+{
+  type: 'fusion/entrust',
+  secretKey: KEY,
+  tangle: {
+    fusion: { root: %init, previous: [%invite] }  ???
+  },
+  recps: [@fusionA, @feedDesktop]
+}
+```
+
+if this identity is @fusionA, then including this in the recps ensures all current members of 
+fusion can see the key was sent
+
+
+### proof
+
+....?
+
+
+## Questions for next time
+
+- consent
+  - proof-of-key
+- redirects
+- attestation
+  - confirming / denying tombstones (adding meta data)
+  - confirming / denying redirects
+- how we do authorship?
+  - how does it work
+  - is this a core part of the spec?
+  - signing?
+  - checking list of authors?
+    - e.g. @fusionA is an admin of this wiki article
+  - when I publish can I published "AS @fusionA"
+

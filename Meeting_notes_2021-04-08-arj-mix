@@ -1,0 +1,141 @@
+# identity converstion / ssb | 2021-04-08
+
+Agenda:
+- mini topics
+  - private groups + ssb-db2
+    - bug : if you don't have group root (mix hasn't done anything)
+    - arj has done a PR updating to latest master branch
+      - turned up some errors with indexes
+      - pairing?
+      - might come back to it?
+        - is this going to be supported by the end of this grant?
+
+  - NGI updates?
+    - had a call with zenna/ magnus/ martin
+
+- identity across multiple devices?
+  - spec?
+- feedless identity (mvsa)
+- structure (did documents)
+
+---
+
+## design constraints/ problem
+
+arj:
+- scared of sameAs because lots of people have spent time and not made much progress
+- wanted to do something very simple
+  - started out with linking identities
+- realised some requirements:
+  - want to be able to send / receive private messages
+- NOT:
+  - create a identity which is not a key, so you can cycle keys
+  - no adding / removing members of identity, you would just mint a new thing
+  
+  
+mix:
+- support:
+  - laptop + phone + desktop all can be used "the same"
+  - one profile for all
+    1. can mention "Mix"
+    2. can private message with "Mix"
+    3. can use "Mix" in authorisation logic (e.g. add mix as a gathering admin) :fire:
+        - is this edit coming in "part of Mix" and should I include
+    4. can add "Mix" to private groups :fire:
+        - what happens when a new device get added to "mix"
+        - what happens when a device gets removed from "mix"
+  - no "ONE MASTER KEY TO RULE THEM ALL" :fire:
+    5. any device can nullify the union
+
+---
+
+topics:
+
+### A. adding device to an identity
+   - is it one identity?
+   - is it a thing which changes over time?
+   - is it important to be able to reference a point in time for an identity?
+ 
+if we tombstone an identity then it allows us to not have to reason about removing people
+if we mint a new identity, then we know we can trust that....
+so there's time with the identity, but it's not a continuous morphing thing, but discrete progression.
+
+one way we could cut off the line of what's valid is a list of sequences for each feed where we make a cut.
+
+tombstone
+- records the latest sequence of the participating feeds known...
+
+tangling the feeds
+- if we force a "previous" for each identity, then we can partial ordering
+
+summary:
+- you can add add add
+- you cannot remove
+- you can tombstone
+
+   
+### B. what's after a tombstone
+
+ideas:
+- create a new identity with a previous which points back
+  - no: mixing concerns (connecting identities + definining identity)
+- redirect message
+  - can store dedicated meta data
+  - you can point at the redirect distinctly and
+    - attest things
+    - mutate it (e.g. tombstone)
+  - attestation on redirect (or something)
+- create one or more identities, other people will decide how to proceed
+  - attestation : people recording their decision
+
+questions:
+- how can we seperate concerns as much as possible
+- should the tombstone also be a redirect?
+  - arj: against (mix agree)
+- what was associated with this identity?
+  - a record of which feeds are included?
+  - some meta data
+    - name
+  - private messaging key
+  - unique ID
+  
+  - holds group keys which it has access to
+  - signing key????
+  
+- how do other people know what to trust?
+  - attestation
+- how do others assert trust in a successor?
+  - attestation
+  
+- what happens with groups? :fire: :poop: :dragon:
+  - the group key has to change
+    1. wreck the group
+    2. cycle the key
+    
+  - "I actually don't think it will be that hard"
+    - arj on infintely nested identities/ groups
+    
+  - want something similar to a "normal feed"
+    - have a public key which can be referenced
+    - maybe you don't need to care about whether you're addessing a "normal" or "sameAs"
+
+scenario of mix losing his phone and being part of a the ssbc group:
+1. mix loses phone
+2. mix tombstones identity
+3. mix/ someone tombstones the ssbc group
+4. someone posts a redirect to new group
+5. we all have to jump :hand waving:
+
+
+
+## Lens
+
+Do you really trust this person?
+- if you do, you can be less paranoid.
+
+
+## Next time
+
+- start writing details
+  - rework the same-as spec repo
+- check in on ssb-crut assumptions

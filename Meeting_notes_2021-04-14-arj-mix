@@ -1,0 +1,237 @@
+# Facetted Identity Spec | 2021-04-14
+
+Last time: https://hackmd.io/iQlUz8nBSeecrrb5mQtcUQ
+
+hackmd: https://hackmd.io/AHdW4Z6lTAqEfPxEkSuSvQ
+
+Last time Summary:
+- tombstoning is go!
+- redirects as ways to link, metadata, attesting
+- curly cases
+  - groups.... might be similar?
+
+
+This time
+- sketch it out
+- chuck it in a repo
+- name for the spec
+  - arix
+  - mirj
+  - manders
+  - andix
+
+----
+
+## Tombstones
+
+https://github.com/ssbc/ssb-schema-definitions/blob/master/definition/tombstone.js
+
+```js
+// identity
+{
+  preferredName: { set: String },
+  tombstone: { set: null } // undoes a tombstone ??
+  tombstone: null
+}
+OR
+
+{
+  preferredName: { set: String },
+  tombstone: {
+    set: {
+      date: Integer, // required
+      reason: String // optional
+    }
+  }
+}
+```
+
+If you have a tangle which branches and the tombstone is on a branch...
+Consider the whole thing tombstoned
+
+
+```
+      A
+     / \
+    B  C
+   |   |
+   \  T1   < tombstone
+   \  /
+   \ /
+   T2  < another facet of identity affirming tombstone
+```
+
+
+Questions:
+1. can you undo a tombstone?
+2. is a whole record tombstoned if there is a valid tombstone message attached to the tangle anywhere?
+3. should everyone post a tombstone who can?
+4. when you look up the tombstone state, should you see all the tombstones from each facet?
+   - e.g. `tombstone = [{ author: Mix1, date }, {author: Mix3, date }]` (reduced state)
+5. can you post a refute to a tombstone?
+   - e.g. 2 devices say the one who started the tombstone was malicious?
+   - could be done different with anti-attestation
+   - tombstoning could be attested ....
+
+```
+      A
+     / \
+    B  C
+       |
+      T1  <-- Attest1
+          <-- Attest2
+          <-- !Attest1
+```    
+
+One tombstone = it's gone
+
+Notice:
+- any more messages just add meta-data. We just need to decide how to backlink / tangle those in
+
+
+## Identity
+
+Minimal attributes:
+  - ID
+  - facets: [
+    Feed,          // a classic ssb keypair public key
+    MetaIdentity   // an identity similar to this one (made up of multiple parts)
+  ]
+  - public encryption key for DMs
+    - could be the same as ID
+
+Optional Attributes:
+  - preferredName
+  - fullName
+  - avatarImage: e.g. {
+    type: 'hyper'
+    blobId,
+    readKey / unboxKey,
+    mimeType,
+    size
+  }
+  
+Encryption ideas:
+- if public ID and public encryption key are different
+  - would have to support this public encryption key
+- if public ID and encryption key are same
+  - would work for current systems
+- question:
+  - is this multi-identity a group? does it use the first slot of box2?
+  - how do we need to know when we need to try "meta-arj" keys on "arj-phone" messages?
+
+```
+
+@MixDesktop                                            @MixPhone
+    \                                                    |
+    %link/feed-profile->   %MixQueerProfile  <-%link/feed-profile
+      - @creator           |
+                           %transform1
+                           |
+                           %transform2
+                         
+                         
+                         
+                         %MixBusinessProfile
+                         |
+                         %transform1
+                         |
+                         %transform2
+```
+
+questions:
+- how does arj know how to message mix mention / privately?
+- what feeds do I need to get to know who "Mix" is?
+
+- if an author is another meta-identity, how do you know how to replicate the appropriate people?
+
+
+### Authorship of a profile in Ahau
+```
+A authored by @mixDesktop
+{
+  preferredName: { set: Mix }
+  authors: [
+    { id: @mixDesktop, seq: 223 } // then there's some way to show add/remove
+    { id: @mixPhone, seq: 14 } // then there's some way to show add/remove
+  ]
+}
+
+B authored by @mixPhone
+{
+  preferredName: { set: MetaMix }
+  authors: [
+    { id: @mixLaptop, seq: 33 }
+  ]
+}
+
+```
+questions:
+- this implies phones is happy to be added?
+  - there's no consent
+  - possible idea:
+    - this is the backend
+    - in the front-end, we show it as a proposal / invitatoin, UNTIL mixPhone published something (this is them speaking with their new authorship priviledge)
+- yes to consent!
+  - 3 message
+    - invite
+    - yes thanks / no thanks
+    - (if yes) ok, here's a DM with the private key
+    - ???
+  - 2 message
+    - invite (publicly? send private key DM?)
+    - yes is via authoring yourself into a "consented" list on record
+
+
+  - mostly private, sign yourself in
+    - DM: invite
+    - DM: yes please
+    - DM: here's your private key
+    - public: adds self to authors, SIGNS with private key
+
+    - OR
+      - DM: invite + key
+        - problem - if you access the private key no-one in the meta identity has to have added you ... which could be dangerous
+      - public: adds self to authors, SIGNS with private key
+- how do we make this easy to publicly audit / follow along?
+  - what is this going to be used for? by who?
+    - how is this different to private groups?
+      - private groups are about being able to have hidden comms, hidden group of people.
+      - you can have a public shop-front, which tells you a little about a group, and who to talk to to apply to join.
+    - a meta-identity is for?
+      - I have multiple devices, and I want to just have one account
+        - being able to have one DM inbox
+        - one id which is added to groups
+        - one id which is mentioned
+      - a public group
+        - can speak as a group/ on behalf of the group 
+        - DM for multiple people (e.g. email the euro@butts.ssb)
+        - is this a nice to have, or a core feature
+          - this is a nice to have corollary?
+          - we're ok with this being cut if it has to be
+
+
+Other things we will need:
+- to inform the other facets of the Private Key
+- to declare a link from your identity to this meta-identity
+
+
+
+## Summary
+
+we covered:
+- what the identity needed
+- tombstoning
+- purpose: this is primarily for multi-device
+
+open questions:
+- inviting / consent
+- how we do authorship?
+  - how does it work
+  - is this a core part of the spec?
+  - signing?
+  - checking list of authors?
+- redirects
+- attestation
+  - confirming / denying tombstones (adding meta data)
+  - confirming / dening redirects
