@@ -1,6 +1,6 @@
 # Fusion Identity Spec
 
-[dancegif]
+![dance][dancegif]
 
 Purpose: primarily for multi-device
 
