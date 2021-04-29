@@ -1,0 +1,187 @@
+# Fusion dance spec | 2021-04-29
+
+## Last time
+
+the dance:
+- init
+- invite
+- consent
+- entrust
+- proof of key
+
+
+### Questions from last time
+
+- consent
+  - proof-of-key
+- redirects
+- attestation
+  - confirming / denying tombstones (adding meta data)
+  - confirming / denying redirects
+- how we do authorship?
+  - how does it work
+  - is this a core part of the spec?
+  - signing?
+  - checking list of authors?
+    - e.g. @fusionA is an admin of this wiki article
+  - when I publish can I published "AS @fusionA"
+
+## Agenda
+
+- proof-of-key?
+- redirects
+
+homework reading!
+- multi-device secure instant messaging
+  https://eprint.iacr.org/2021/498.pdf
+
+## Dance step 5 : Proof of key?
+
+Pro:
+- publicly auditable that fusion successfully happened - can this peer decrypt messages
+- makes it clear at what point a person for sure has access (to the identity)
+- calms mix's paranoia
+
+Con
+- another step - complex
+
+Could be optional
+- one version of the dance is a "full dance" which has proof of key
+- short dance could just not do it
+
+Are there going to be 2 keys (one for signing, one for encrypting)
+- arj: this paper references this
+  - one key for signing mutations (adding members)
+  - one key for reading DMs
+  - in paper this allowed for read-only accounts vs writing accounts (admin)
+- mix: if we have 2 keys, how do you prove you have them
+  - signing : easy
+  - encrypting : .... zero knowledge proof
+  
+- arj: what even needs signing?
+  - mix: at the moment only the proof-of-key`
+  - mix: fuck it, lets use the same key, no-one else is doing any better
+
+DECISION: we will use one key
+  arj: sounds good to me, lets keep it simple
+  mix: phew
+  
+
+message:
+
+```js
+{
+  type: fusion/proof-of-key,
+  entrustId: ConsentMsgId,
+  proof: sign(ConsentMsgId + 'fusion/proof-of-key')
+  tangles: {
+    identity: { root, previous }
+  }
+}
+```
+
+NOTE: we use the consent message because:
+- it's unique, and unique to the person consenting
+- it's public content
+- replay proof
+
+Question:
+- if we do signing this way, does this mean we need to sign in this same way if we ever use key for signing again?
+
+
+## TBD list
+
+- proof-of-key dance step?
+- ~~seperate signing/ encrypting keys?~~
+- ~~do we support add a fusion to a fusion identity?~~
+   - probably not in v1
+
+## mix's keyboard layer misteps
+
+count: 1
+
+## Questions
+
+1. if we do signing this way, does this mean we need to sign in this same way if we ever use key for signing again?
+  - (see proof of key)
+  
+2. what's the format of a fusion id
+  - @sdfasldkrf;skjdf;laksjdf=.fusion1 (proposed)
+  - @sdfasldkrf;skjdf;laksjdf=.ed25519 (current identities)
+  - %sdfasldkrf;skjdf;laksjdf=.cloaked (private group)
+  
+TFK - type, format, key
+  - identity: @
+  - "classic", goLang
+  - key
+
+
+## Redirects
+
+context:
+  - after a tombstone
+  - someone wants to say "new one over here"
+
+```
+{
+  type: 'fusion/redirect',
+  old: @sdfasldkrf;skjdf;laksjdf=.fusion1,  // FusionId
+  new: @ldkrf;skssjdfjdf;laksdfa=.fusion1,
+  tombstoneMsg: MsgId    // allows easy lookup of reason for redirect
+  // tombstone is a protected prop - we may want to tombstone a redirect!
+  // tangle?
+}
+```
+
+Question: tangles?
+  - no identity tangle, this could be a standalone message
+  - make it all one mega tangle!
+    - or could be the root of the new tangle
+
+
+```
+{
+  type: 'fusion/tombstone',
+  reason: String // optional
+}
+```
+
+arj: do we need the tombstone referenced?
+  - mix: I don't think so
+
+Story:
+- @fusionA is mentioned in a post
+- I click through to their profile which is loaded by:
+  1. find the init with that FusionId
+  2. resolve the profile (tangle)
+  3. see it's tombstoned
+  4. go looking for redirects
+  5. attestation checks?
+  6. resolve new profile(s)
+ 
+scenarios
+- you've already done attestation and just follow your past decision
+- no attestation exists, you're forced to decide ?
+
+Story2:
+- there's a disagreement with between devices
+- one person tombstones, makes a new record and redirect
+- another person disagrees, makes a new record and redirects somewhere else
+- all new subrecord could be valid
+
+Question: is it valid for there to be multiple continuations?
+  - we could force people to chose only one
+  - pro:
+    - easier
+    - consistent with the group be some coherance...
+    - maybe a split should be represented differently
+
+
+_very_ rough final discussion
+- multiple redirects??!!
+  - happy path vs pirate devices
+  - should we allow them
+- different type: fusion/split
+  - for when you have an amicable fission
+- how does a redirect message tangle
+- how do we ensure "invalidated" redirects don't get used
