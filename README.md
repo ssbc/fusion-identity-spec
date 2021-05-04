@@ -78,7 +78,7 @@ Nullify the identity
 
 ```js
 {
-  type: 'fusion/tombstone,
+  type: 'fusion/tombstone',
   reason: 'Lost @feedPhone, state of key is unknown',
   tangle: {
     fusion: { root: %init, previous: [%consent] }
