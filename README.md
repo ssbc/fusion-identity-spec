@@ -88,25 +88,35 @@ Nullify the identity
 
 ### redirect
 
-What other identity can I use instead?
+After a tombstone, what other identity can I use instead?
 
 ```js
 {
   type: 'fusion/redirect',
   old: @sdfasldkrf;skjdf;laksjdf=.fusion1,  // FusionId
   new: @ldkrf;skssjdfjdf;laksdfa=.fusion1,
-  tombstoneMsg: %tombstone    // allows easy lookup of reason for redirect
-  // tangle?
+  tangle: {
+    redirect: { root: null, previous: null }
+  }
 }
 ```
-
-Questions:
- - What is the tangle? For the old identity, the new or both? If its
-   the old, then we don't need tombstoneMsg
 
 ### attestation
 
 Is the redirect valid?
+
+```js
+{
+  type: 'fusion/attestation',
+  target: %redirectId,
+  position: confirm|reject|null,
+  reason: String, // optional
+  tombstone: Tombstone // optional
+  tangle: {
+    attestation: { root: null, previous: null }
+  }
+}
+```
 
 ## Related work
 
