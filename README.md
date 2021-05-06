@@ -42,7 +42,7 @@ Add a feed
 ```
 
 Question:
- - Can be invite a fusion identity?
+ - Can we invite a fusion identity?
 
 ### consent
 
