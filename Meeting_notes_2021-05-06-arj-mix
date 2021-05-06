@@ -1,0 +1,170 @@
+# Fusion Identity spec | 2021-06-05
+
+## Last time closing points
+
+_very_ rough final discussion
+  - multiple redirects??!!
+    - happy path vs pirate devices
+    - should we allow them
+  - different type: fusion/split
+    - for when you have an amicable fission
+  - how does a redirect message tangle
+  - how do we ensure "invalidated" redirects don't get used
+
+
+
+
+## Agenda?
+
+- redirects (again!)
+- attestation?
+
+## Redirect
+
+different possible valid states for redirect to be in:
+1. there's no redirect
+2. there's one redirect
+  a) you do agree
+  b) you don't agree
+3. there are multiple redirects
+  a) there's one you agree with
+  b) you don't agree with any
+
+Proposal: everyone who agrees with a redirect must attest it publicly
+  - if you're planning to use a redirect, you MUST attest the redirect you are following
+  - mix and arj YES!
+
+Reasons:
+  - we think requiring attestation makes reasoning a lot easier (we're not guessing what redirect algorithm others are using)
+  - pins you decision for apps so it doesn't need to decide/ ask you again
+  - this is all about public fusion profiles.... 
+
+
+
+arj: I'd like attestation to be required before you can invite new people to a new identity
+  - mix: why?
+    - arj: this makes it easier to follow, I think it would be confusing if it goes init, redirect, invite, attest...
+    - mix: I think that's based on some assumptions about how this is going to be tangled
+
+```
+A init
+A
+A
+X
+                      B init
+                      B
+                      B
+```
+
+Proposal: the old and the new identities are not tangled, they could be considered standalone
+- mix: yes
+- arj: yes, but is the redirect part of the old or new identity?
+  - mix: neither, redirecting is a different domain/ function than the identity
+
+
+```
+A init
+A
+A
+X
+                      B init
+                      B
+                      B
+                      
+                      
+                      
+       redirect
+         old: A-init
+         new: B-init
+         
+         tangle: {
+           redirect: {
+             root: null,
+             previous: null
+           }
+         }
+```
+mix:
+  - A is tombstoned, you cannot extend a tombstoned record
+  - We need to have clarity on authorship permissions on this redirect?
+    - who is allowed to tombstone a redirect?
+
+arj:
+  - having it independant means we don't introduce 2 sorts of identity
+    - "original identity"
+    - "redirected identity"
+
+Proposal: redirect will be an independant tangle (from all identities)
+  - AGREE
+
+arj: because there should be no causality between A + B, it shouldn't matter when you attest
+
+Proposal: you can start using B before redirect/attest is "resolved"
+  - AGREE
+
+Question: Should there only ever be a single redirect from A to something else?
+
+## Attestation?
+
+Redirect case:
+ A feed that was part of A attests that the redirect is good, or not?
+
+ 
+Question: does all members of B attest the redirect?
+  - ONLY if you're planning on using the redirect
+
+Question: can people outside of A and B attest a redirect?
+  - the state of a redirect has a interesting time dimension
+  - mix: I'd like to be able to do this because then I don't have to worry so much about assessing all redirects myself
+
+Proposals:
+  - you can mention a tombstoned identity (but you might get a warning)
+  - you MUST NOT dm a tombstoned identity
+    - use the public key to encrypt to A
+  - ???
+  
+Question: what are we using redirects for?
+  - click a mention > profile (you want to see their current posts, maybe DM them)
+    - if you followed a redirect, then take an action like DM, what should the requirements be on that redirect?
+        - e.g. should all member feeds have to have attested?
+        - should you just get a warning
+  - you're in a private thread with someone, and one recp explodes.
+    - should you swap a recps, or trash the thread?
+
+attestastion requirements
+- state: confirm / reject / null
+  - want null because if you undo a confirm because you're "not sure" anymore, that's a different thing to "reject"
+- be able to remove
+- reason
+
+Affirm attestastion
+
+
+```
+{
+  type: 'fusion/attestation',
+  target: %redirectId,
+  position: confirm|reject|null,
+  reason: String, // optional
+  tombstone: Tombstone // optional
+  tangle: {
+    attestation: { root: null, previous: null }
+  }
+}
+```
+
+
+```
+A   ----- R ------- B
+       a1
+            a2
+```
+
+
+mix: I would tangle this so that it becomes a record for a particular autho-target pair
+  - allows mutation on:
+    - position
+    - reason
+    - tombstone
+
+Attenstation togehter with redirect could be general concepts? Meaning the type is not fusion/.
