@@ -4,6 +4,32 @@
 
 Purpose: primarily for multi-device
 
+No removal of members, only tombstoning and potentially redirecting to a new
+
+Private messages uses box2.
+
+Format of a fusion id:
+ - @sdfasldkrf;skjdf;laksjdf=.fusion1 (proposed)
+ - @sdfasldkrf;skjdf;laksjdf=.ed25519 (current identities)
+ - %sdfasldkrf;skjdf;laksjdf=.cloaked (private group)
+
+Usages:
+ - Can mention a fusion identity and all members can used that as
+   notification
+ - Can private message a fusion identity and all members will be able
+   to decrypt the message and respond
+ - Acts as a public record of what feeds are part of an identity
+   (discoverability)
+
+Out of scope for first version:
+ - private invite flow (membership)
+ - Can be used in authorisation logic
+ - Can be part of private groups
+
+Question: 
+ - following a fusion identity and related to that, how to handle
+   redirects. This is important for replication.
+
 ## Operations:
 
 ### init
@@ -13,16 +39,20 @@ Start the new identity
 ```js
 {
   type: 'fusion/init',
-  id: ????,
-  fusionId: @fusionA, // PublicKey
+  id: @fusionA,
   tangle: {
     fusion: { root: null, previous: null }
   }
 }
 ```
 
-Question:
- - Should the `id` and `fusionId` be different to enable cycling keys?
+To keep things simple the public encryption key for DMs is the same as
+the identity.
+
+In order to figure out the members of an identity one needs to look at
+all the messages related to the tangle. These messages lives in
+different feeds. One can use invites to trace the members or use
+tangle sync to receive messages outside your follow scope.
 
 ### invite
 
@@ -40,6 +70,9 @@ Add a feed
   }
 }
 ```
+
+Only a feed that was either the one that created the fusion identity
+or has accepted an invite is allowed to create an invite.
 
 Question:
  - Can we invite a fusion identity?
@@ -72,6 +105,28 @@ Give secret key to invited
 }
 ```
 
+The reason to do this as a separate message instead of including it in
+the invite is that it makes it more clear if the device has had access
+to the key and because this is primarily about multi-device we are in
+control of the latency around each leg of this.
+
+### proof of key
+
+A way to publicly announce that you are in possession of private key 
+
+```js
+{
+  type: fusion/proof-of-key,
+  entrustId: %consent,
+  proof: sign(%consent + 'fusion/proof-of-key')
+  tangles: {
+    fusion: { root, previous }
+  }
+}
+```
+
+This step is optional in the protocol
+
 ### tombstone / revoke
 
 Nullify the identity
@@ -85,6 +140,12 @@ Nullify the identity
   }
 }
 ```
+
+To keep things simple, we decided that you can't undo a tombstone
+through attestation. 
+
+Attestation in general makes it harder for an adversary to try and
+hide the fact that a identity have been revoked.
 
 ### redirect
 
@@ -100,6 +161,12 @@ After a tombstone, what other identity can I use instead?
   }
 }
 ```
+
+A redirect is an independant tangle. It is neither part of the old or
+new fusion identity. This means there is no causality between the old,
+the new and the redirect. Clearly the old and new needs to exist
+before a redirect can be created but there is no need for a redirect
+to be attested before the new identity can start inviting members.
 
 ### attestation
 
@@ -117,6 +184,52 @@ Is the redirect valid?
   }
 }
 ```
+
+Everyone who agrees with a redirect must attest it publicly
+
+Question:
+ - How do you use this to figure out if a thing (like redirect) is
+   valid?
+
+## Flow
+
+A flow diagram of what action can follow another. Please note that
+multiple invites can happen concurrently. The tangle structure keeps
+track of the state of the identity. After a tombstone, the only valid
+operation on the identity is attestation.
+
+The `<state> -> tombstone` is left out in the list above because any
+state can lead to the tombstone state. Similarly `<state> -> invite`
+is also left out.
+
+```
+ invite -> consent
+ invite -> attestation (deny)
+ consent -> entrust
+ entrust -> proof-of-key
+ tombstone -> attestation
+ tombstone -> redirect (not part of the identity)
+ redirect -> attestation
+ redirect -> tombstone of redirect?
+```
+
+## Private messages
+
+Private messages uses box2.
+
+FIXME: precise definition, like: what slot does it use of box2?
+
+## Operations
+
+Ideally we would like methods that:
+
+ - Given a feed id lists all meta feeds this is a member of, and their
+   state (including redirects?)
+ - Given a fusion identity lists all active and pending members
+
+## Scenarios
+
+FIXME: describe some common scenarios and how they are handled
 
 ## Related work
 
