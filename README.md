@@ -20,15 +20,12 @@ Usages:
    to decrypt the message and respond
  - Acts as a public record of what feeds are part of an identity
    (discoverability)
+ - Following a fusion identity for replication
 
 Out of scope for first version:
  - private invite flow (membership)
  - Can be used in authorisation logic
  - Can be part of private groups
-
-Question: 
- - following a fusion identity and related to that, how to handle
-   redirects. This is important for replication.
 
 ## Operations:
 
@@ -147,6 +144,10 @@ through attestation.
 Attestation in general makes it harder for an adversary to try and
 hide the fact that a identity have been revoked.
 
+Question:
+ - should we include a list of current member of the identity to make
+   reasoning about redirects easier?
+
 ### redirect
 
 After a tombstone, what other identity can I use instead?
@@ -167,6 +168,21 @@ new fusion identity. This means there is no causality between the old,
 the new and the redirect. Clearly the old and new needs to exist
 before a redirect can be created but there is no need for a redirect
 to be attested before the new identity can start inviting members.
+
+For the case where you follow a fusion identity that is then
+tombstoned, we need a clear rule to determine what redirect to follow
+and at what point we start replicating the feeds of the new fusion
+identity instead of the old. One way would be a majority of members in
+the old fusion identity needs to attest a redirect. In the case of a
+tie, yourself attesting a redirect breaks the tie. 
+
+FIXME: consider a social tiebreaker where 3 of your friends also
+breaks a tie?
+
+FIXME: security consideration where a malicious member extends the
+tangle branching of the last message before a tombstone and then
+starts adding new members in order to gain the majority. Probably
+include the members of the fusion identity in the tombstone.
 
 ### attestation
 
