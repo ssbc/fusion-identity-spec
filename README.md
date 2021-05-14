@@ -23,7 +23,7 @@ Usages:
  - Following a fusion identity for replication
 
 Out of scope for first version:
- - private invite flow (membership)
+ - Private invite flow (membership)
  - Can be used in authorisation logic
  - Can be part of private groups
 
