@@ -1,4 +1,4 @@
-# Fusion Identity Spec
+# Fusion Identity Spec v1 (DRAFT)
 
 ![dance][dancegif]
 
@@ -22,12 +22,36 @@ Usages:
    (discoverability)
  - Following a fusion identity for replication
 
-Out of scope for first version:
- - Private invite flow (membership)
- - Can be used in authorisation logic
- - Can be part of private groups
+Out of scope for v1:
+ - Private invitations to fusion identity
+ - Inviting fusion identities to private groups
+ - Use of fusion identity for authorisation logic
+     - this is a priority, but will be addressed in subsequent versions
+ - invite a fusion identity to an existing fusion identity
 
-## Operations:
+## Overview
+
+TODO story + diagram
+
+```
+   
+   
+
+```
+
+Parts:
+  - Identity tangle
+    - tombstone
+      - justification
+      - rules
+  - Redirect tangle
+    - provides more infomation about the evolution of identities
+    - redirects are NOT a must have, but make automating some things easier (TODO)
+  - Attestation tangle
+
+---
+
+## Fusion Identity Operations:
 
 ### init
 
@@ -37,7 +61,7 @@ Start the new identity
 {
   type: 'fusion/init',
   id: @fusionA,
-  tangle: {
+  tangles: {
     fusion: { root: null, previous: null }
   }
 }
@@ -60,10 +84,14 @@ Add a feed
 {
   type: 'fusion/invite',
   invited: [
-    @feedDesktop,
+    @feedDesktop=.ed25519, // FeedId (my desktop)
+    @feedLaptop=.ed25519, // FeedId (my phone)
   ],
-  tangle: {
-    fusion: { root: %init, previous: [%init] }
+  tangles: {
+    fusion: {
+      root: %123asdasdsad=.sha256,  // Init MessageId
+      previous: [%init]
+    }
   }
 }
 ```
@@ -71,8 +99,9 @@ Add a feed
 Only a feed that was either the one that created the fusion identity
 or has accepted an invite is allowed to create an invite.
 
-Question:
- - Can we invite a fusion identity?
+NOTE:
+- you can only invite other feedId
+ 
 
 ### consent
 
@@ -81,8 +110,14 @@ Accept the invite
 ```js
 {
   type: 'fusion/consent',
-  tangle: {
-    fusion: { root: %init, previous: [%invite] }
+  tangles: {
+    fusion: {
+      root: %init, // Init MessageId
+      previous: [
+        %12312lk3j12;lk3j123.=sh256,
+        %1sadasd3j12;lk3j123.=sh256,
+      ]
+    }
   }
 }
 ```
@@ -91,21 +126,22 @@ Accept the invite
 
 Give secret key to someone that has consented an invite
 
+Only the one that invited a feed should send the entrust message
+
 ```js
 {
   type: 'fusion/entrust',
-  secretKey: KEY,
-  tangle: {
-    fusion: { root: %init, previous: [%consent] }
-  },
+  secretKey: KEY, // make this consistent
+  fusionRoot: %init,
   recps: [@fusionA, @feedDesktop]
 }
 ```
 
-The reason to do this as a separate message instead of including it in
-the invite is that it makes it more clear if the device has had access
-to the key and because this is primarily about multi-device we are in
-control of the latency around each leg of this.
+NOTE:
+- identity init author should entrust the key to themselves
+  - otherwise if they have to rebuild their db's they won't have a copy!
+- we could have included a private section of the `fusion/invite` which included the key, but decided against this because it makes the flow less clear
+- adding an additional step to send the key after consent does not add significant latency because we are presumed to be in control of all the devices in this fusion identity
 
 ### proof of key
 
@@ -114,7 +150,7 @@ A way to publicly announce that you are in possession of private key
 ```js
 {
   type: fusion/proof-of-key,
-  entrustId: %consent,
+  consentId: %consent,
   proof: sign(%consent + 'fusion/proof-of-key')
   tangles: {
     fusion: { root, previous }
@@ -124,41 +160,42 @@ A way to publicly announce that you are in possession of private key
 
 This step is optional in the protocol
 
+NOTE:
+- we use the MessageId of the `fusion/consent` message because this is a unique publicly auditable record that's part of the tangle (while the entrust is not)
+
+
 ### tombstone / revoke
 
-Nullify the identity
+Nullify the identity.
+
+Given you have a shared private key, there is no easy way to "remove" a device from a fusion identity.
+
+Our solution is to "tombstone" identities and require you mint a new fusion identity with the devices you trust. (read on for tools to help with this transition - redirects + attestation).
 
 ```js
 {
   type: 'fusion/tombstone',
   reason: 'Lost @feedPhone, state of key is unknown',
-  tangle: {
-    fusion: { root: %init, previous: [%consent] }
+  tangles: {
+    fusion: {
+      root: %init,
+      previous: [%consent]
+    }
   }
 }
 ```
 
-To keep things simple, we decided that you can't undo a tombstone
-through attestation. 
+RULES:
+- you cannot undo a tombstone
+- once a tombstone has been published, the only messages which are allowed to extend the tangle are other tombstone messages
+- you MUST NOT DM a tombstoned identity
 
-Attestation in general makes it harder for an adversary to try and
-hide the fact that a identity have been revoked by withholding
-messages from a single feed.
+NOTE:
+- tangles can have divergent state (many tips to the graph). We consider a tangle tombstoned if any of the tips are a tombstone message
 
-### redirect
+## redirect operations
 
-After a tombstone, what other identity can I use instead?
-
-```js
-{
-  type: 'fusion/redirect',
-  old: @sdfasldkrf;skjdf;laksjdf=.fusion1,  // FusionId
-  new: @ldkrf;skssjdfjdf;laksdfa=.fusion1,
-  tangle: {
-    redirect: { root: null, previous: null }
-  }
-}
-```
+The purpose of redirects is to make it easy to point from a tombstoned record to it's replacement.
 
 A redirect is an independant tangle. It is neither part of the old or
 new fusion identity. This means there is no causality between the old,
@@ -166,15 +203,40 @@ the new and the redirect. Clearly the old and new needs to exist
 before a redirect can be created but there is no need for a redirect
 to be attested before the new identity can start inviting members.
 
-For the case where you follow a fusion identity that is then
-tombstoned, we need a clear rule to determine what redirect to follow
-and at what point we start replicating the feeds of the new fusion
-identity instead of the old. One way would be a majority of members in
-the old fusion identity needs to attest a redirect. In the case of a
-tie, yourself attesting a redirect breaks the tie. 
+```js
+{
+  type: 'fusion/redirect',
+  old: @sdfasldkrf;skjdf;laksjdf=.fusion1,  // FusionId
+  new: @ldkrf;skssjdfjdf;laksdfa=.fusion1,
+  tangles: {
+    redirect: {
+      root: null,
+      previous: null
+    }
+  }
+}
+```
 
-FIXME: consider a social tiebreaker where 3 of your friends also
-breaks a tie?
+```js
+{
+  type: 'fusion/redirect',
+  tombstone: {
+    date,
+    reason
+  },
+  tangles: {
+    redirect: {
+      root,      // the root message of a fusion/redirect tangle
+      previous
+    }
+  }
+}
+```
+
+NOTE:
+- there can be many redirects, which ones you choose to trust are up to you (you might like to consider who authored it, and who's atteseted it - see below below)
+- the only person allowed to tombstone a redirect is the person who published it
+
 
 ### attestation
 
@@ -183,17 +245,18 @@ Is the redirect valid?
 ```js
 {
   type: 'fusion/attestation',
-  target: %redirectId,
-  position: confirm|reject|null,
-  reason: String, // optional
-  tombstone: Tombstone // optional
-  tangle: {
+  target: %redirectId,                    // static
+  position: confirm|reject|null,    
+  reason: String,                         // optional
+  tombstone: { reason }                   // optional
+  tangles: {
     attestation: { root: null, previous: null }
   }
 }
 ```
 
-Everyone who agrees with a redirect must attest it publicly
+Everyone who agrees with a redirect must attest it publicly because it makes it harder for an adversary to try and hide the fact that a identity have been revoked by withholding
+messages from a single feed.
 
 Question:
  - How do you use this to figure out if a thing (like redirect) is
@@ -211,15 +274,25 @@ state can lead to the tombstone state. Similarly `<state> -> invite`
 is also left out.
 
 ```
- invite -> consent
- invite -> attestation (deny)
- consent -> entrust
- entrust -> proof-of-key
- tombstone -> attestation
- tombstone -> redirect (not part of the identity)
- redirect -> attestation
- redirect -> tombstone of redirect?
+// identity tangle state changes
+invite -> consent
+invite -> attestation (deny)
+consent -> entrust
+entrust -> proof-of-key
+tombstone -> attestation
 ```
+ 
+```
+// redirect tangle state changes
+redirect -> attestation
+redirect -> tombstone of redirect?
+```
+
+```
+// attestation tangle state changs
+attestation -> tombstone
+```
+
 
 ## Private messages
 
