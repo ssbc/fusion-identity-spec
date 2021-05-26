@@ -1,0 +1,60 @@
+# Identity Fusion Spec | 2021-05-26
+
+We did a bunch of work refactoring the README (seperate commit)
+
+The following is what we finished with looking at as a way of reflecting
+on how these messages should be reduced, and what the final state should look like.
+
+We need to be able to communicate reduced state to have clear test vectors.
+
+## Reduced Identity state
+
+```js
+{
+  id: FusionId
+  // initMsg ? needed ?
+
+  invited: [
+    { feedId: FeedIdC, invitedBy: FeedId } 
+    { feedId: FeedIdD. invitedBy: FeedId } 
+  ],
+  consented: [
+    { feedId: FeedIdB, invitedBy: FeedId }
+  ],
+  member: [  // proofOfKey
+    { feedId: FeedIdA, invitedBy: FeedId }
+  ],
+  tombstone: [Tombstone]
+
+  tips: [
+    MessageIdX,
+    MessageIdY,
+  ]
+}
+```
+TODO: check these state transitions can be confirmed:
+  ```
+  invite -> consent
+  invite -> attestation (deny)
+  entrust -> proof-of-key
+  
+  consent -> entrust
+  ```
+
+NOTE:
+- a feedId can only be in one of `(invited|consented|member)`
+
+Questions:
+- should the entrust be part of the identity tangle?
+  - most people won't be able to read it
+  - people who can don't want it in reduced state because it will be a "dead end" tip
+    - don't want to extend on it as if people can't read it, it's not valid to extend from
+- does the init author have to publish a "proofOfKey"
+
+mixmix going wild: https://github.com/mixmix/fusion-identity-test
+
+## Next steps
+
+- mix to draft something up in `ssb-crut` as an example to see how it might work
+    - note to self: divergent branches not handled yet ...
+- arj to work on high level diagrams and adding some more text to the document, better examples
