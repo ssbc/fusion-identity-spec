@@ -89,7 +89,7 @@ Accept the invite
 
 ### entrust
 
-Give secret key to invited
+Give secret key to someone that has consented an invite
 
 ```js
 {
@@ -142,11 +142,8 @@ To keep things simple, we decided that you can't undo a tombstone
 through attestation. 
 
 Attestation in general makes it harder for an adversary to try and
-hide the fact that a identity have been revoked.
-
-Question:
- - should we include a list of current member of the identity to make
-   reasoning about redirects easier?
+hide the fact that a identity have been revoked by withholding
+messages from a single feed.
 
 ### redirect
 
@@ -178,11 +175,6 @@ tie, yourself attesting a redirect breaks the tie.
 
 FIXME: consider a social tiebreaker where 3 of your friends also
 breaks a tie?
-
-FIXME: security consideration where a malicious member extends the
-tangle branching of the last message before a tombstone and then
-starts adding new members in order to gain the majority. Probably
-include the members of the fusion identity in the tombstone.
 
 ### attestation
 
@@ -246,6 +238,12 @@ Ideally we would like methods that:
 ## Scenarios
 
 FIXME: describe some common scenarios and how they are handled
+
+## Attacks
+
+Someone trying to add fake identities to a fusion just before posting
+a tombstone in order for them to appear to have the majority when it
+comes to redirecting.
 
 ## Related work
 
