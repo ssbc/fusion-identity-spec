@@ -76,14 +76,14 @@ good, he then `attest` the redirect, unfollow the old fusion identity
 and follows the new one.
 
 ```
-   @laptop                      @phone              @bob
-   ------------                 -------------       -------------
+   @laptop              @phone              @bob
+   ------------         -------------       -------------
    redirect
    attest
-                                attest
-                                                    attest
-                                                    unfollow
-                                                    follow
+                        attest
+                                             attest
+                                             unfollow
+                                             follow
 ```
 
 
