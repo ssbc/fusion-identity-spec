@@ -31,13 +31,61 @@ Out of scope for v1:
 
 ## Overview
 
-TODO story + diagram
+Alice has SSB installed on per laptop and installs a client on her
+phone. She wants one identity that links her two devices. Either
+device can do an `init` to create a new fusion identity. Lets assume
+laptop does. Then laptop `invite` phone to the identity. The phone
+`consent` the invite, after which laptop will `entrust` phone with the
+private key. Lastly phone posts a `proof-of-key` message announcing
+the possession of the key. At this point phone is now a member of the
+fusion identity and can invite other devices.
 
 ```
-   
-   
+   @laptop                      @phone
+   -----------------            -----------------
+   init ->
+   invite: @phone ->
+                                <- consent
+   entrust ->
+                                proof-of-key
+```
+
+Later Alice is at a party and looses her rooted phone on the way
+home. From this point on she `tombstones` the fusion identity to tell
+other peers not to send private messages to the fusion identity any
+longer as those messages might be read by a third party.
+
+Later she luckily recovers her phone. She then goes through the same
+mechanism as originally to create a new fusion identity.
 
 ```
+   @laptop                      @phone
+   -----------------            -----------------
+   init ->
+   invite: @phone ->
+                                <- consent
+   entrust ->
+                                proof-of-key
+```
+
+This leaves her with 2 fusion identities. Lets say that Bob was
+following her old fusion identity. Alice should create a `redirect`
+and `attest` the redirect from both devices. This should allow Bobs
+client to show what has happened. If Bob agrees that the redirect is
+good, he then `attest` the redirect, unfollow the old fusion identity
+and follows the new one.
+
+```
+   @laptop                      @phone              @bob
+   ------------                 -------------       -------------
+   redirect
+   attest
+                                attest
+                                                    attest
+                                                    unfollow
+                                                    follow
+```
+
 
 Parts:
   - Identity tangle
@@ -168,9 +216,12 @@ NOTE:
 
 Nullify the identity.
 
-Given you have a shared private key, there is no easy way to "remove" a device from a fusion identity.
+Given you have a shared private key, there is no easy way to "remove"
+a device from a fusion identity.
 
-Our solution is to "tombstone" identities and require you mint a new fusion identity with the devices you trust. (read on for tools to help with this transition - redirects + attestation).
+Our solution is to "tombstone" identities and require you mint a new
+fusion identity with the devices you trust. (read on for tools to help
+with this transition - redirects + attestation).
 
 ```js
 {
@@ -187,15 +238,19 @@ Our solution is to "tombstone" identities and require you mint a new fusion iden
 
 RULES:
 - you cannot undo a tombstone
-- once a tombstone has been published, the only messages which are allowed to extend the tangle are other tombstone messages
+- once a tombstone has been published, the only messages which are
+  allowed to extend the tangle are other tombstone messages
 - you MUST NOT DM a tombstoned identity
 
 NOTE:
-- tangles can have divergent state (many tips to the graph). We consider a tangle tombstoned if any of the tips are a tombstone message
+- tangles can have divergent state (many tips to the graph). We
+  consider a tangle tombstoned if any of the tips are a tombstone
+  message
 
 ## redirect operations
 
-The purpose of redirects is to make it easy to point from a tombstoned record to it's replacement.
+The purpose of redirects is to make it easy to point from a tombstoned
+record to it's replacement.
 
 A redirect is an independant tangle. It is neither part of the old or
 new fusion identity. This means there is no causality between the old,
@@ -234,9 +289,11 @@ to be attested before the new identity can start inviting members.
 ```
 
 NOTE:
-- there can be many redirects, which ones you choose to trust are up to you (you might like to consider who authored it, and who's atteseted it - see below below)
-- the only person allowed to tombstone a redirect is the person who published it
-
+- there can be many redirects, which ones you choose to trust are up
+  to you (you might like to consider who authored it, and who's
+  atteseted it - see below below)
+- the only person allowed to tombstone a redirect is the person who
+  published it
 
 ### attestation
 
@@ -255,12 +312,9 @@ Is the redirect valid?
 }
 ```
 
-Everyone who agrees with a redirect must attest it publicly because it makes it harder for an adversary to try and hide the fact that a identity have been revoked by withholding
-messages from a single feed.
-
-Question:
- - How do you use this to figure out if a thing (like redirect) is
-   valid?
+Everyone who agrees with a redirect must attest it publicly because it
+makes it harder for an adversary to try and hide the fact that a
+identity have been revoked by withholding messages from a single feed.
 
 ## Flow
 
