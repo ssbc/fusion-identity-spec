@@ -1,0 +1,70 @@
+
+
+
+
+  //     X
+  //     |
+  //     A   (root)
+  //    / \
+  //   B   C
+  //       |
+  //       D
+  //
+  //
+
+  B* = ((X, A), B)
+  D* = (((X, A), C), D)
+
+  (B*, D*) === (D*, B*)
+  
+  
+  (B, (C, D)) ===  ((C, D), D)
+
+
+B = invite Arj-phone
+C = invite Arj-phone
+D = Arj-phone consent
+
+
+B*
+{
+  invited: { arj: 1 }
+  consented: { arj: -1 }
+  member: {}
+}
+
+
+D*
+{
+  invited: { arj: 1 }
+  consented: { arj: 1 }
+  member: {}
+}
+
+
+
+----------------------------------
+
+  //     X
+  //     |
+  //     A   (root)
+  //    / \
+  //   B   C  two invites
+  //   |   |
+  //   |   D  a consent
+  //    \ /
+  //     E    another consent (if you want)
+  //
+  
+  
+missing:
+  - entrust
+  - proof-of-key? reduce maybe ok
+  - redirect (simple)
+  - attestation (simple)
+
+  - avatar information (name, image, description etc.)
+
+format of messages PR to spec
+  
+tidied reduced state, to make it easier to reason about
