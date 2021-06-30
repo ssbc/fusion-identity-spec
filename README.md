@@ -9,7 +9,7 @@ No removal of members, only tombstoning and potentially redirecting to a new
 Private messages uses box2.
 
 Format of a fusion id:
- - @sdfasldkrf;skjdf;laksjdf=.fusion1 (proposed)
+ - @sdfasldkrf;skjdf;laksjdf=.fusion-v1 (proposed)
  - @sdfasldkrf;skjdf;laksjdf=.ed25519 (current identities)
  - %sdfasldkrf;skjdf;laksjdf=.cloaked (private group)
 
@@ -261,8 +261,8 @@ to be attested before the new identity can start inviting members.
 ```js
 {
   type: 'fusion/redirect',
-  old: @sdfasldkrf;skjdf;laksjdf=.fusion1,  // FusionId
-  new: @ldkrf;skssjdfjdf;laksdfa=.fusion1,
+  old: @sdfasldkrf;skjdf;laksjdf=.fusion-v1,  // FusionId
+  new: @ldkrf;skssjdfjdf;laksdfa=.fusion-v1,
   tangles: {
     redirect: {
       root: null,
