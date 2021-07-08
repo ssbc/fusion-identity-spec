@@ -1,0 +1,97 @@
+# Fusion / DB2 catchup - 2021/07/09
+
+## Box2
+
+- what's the minimum that's useable for db2?
+  - decryption only!
+
+- BFE
+  - binary field encoding
+    https://github.com/ssb-ngi-pointer/ssb-binary-field-encodings-spec
+  - superset of TFK
+    - mix: this looks exactly the same to me, can we please merge?
+
+- extracted box2 lib
+  - are you fine with replacing code in ssb-tribes with this?
+    - mix: yes
+    - mix: keen be involved in how to split is gone
+
+- AGPL license
+  - this makes it so everything above it has to be AGPL
+  - mix: could be open to changing this, but would like to discuss more
+
+- can we use DM key deterministically derived from somewhere?
+  - e.g. from seed?
+    - mix: where is seed stored?
+    - arj: we encrypt it to a message on your log with box1
+    - mix: I don't really want to be forced to use box1 to bootstrap box2
+  - proposal
+    - would like to have self-DM key derived from your sk + meta-feed seed
+    - store the meta-feed seed in the `secret` file
+
+
+
+## Fusion id
+
+- review by justin + keks
+  https://github.com/ssb-ngi-pointer/ssb-meta-feed-spec/blob/master/meeting-notes-arj-keks-justin-2021-06-29
+  
+  - don't do signing in proof, rather demonstrate proof using a hash of (challenge+key)
+    - mix: yes
+  - password protect tombstoning
+    - could implement an additional field on tombstone where you prove you knew a password which was bound to the identity earlier
+    - nice extra
+    - mix: yes
+    
+  - they were confused about the attestation part of the docs
+    - should tidy it up
+    
+  - gonna have a review where they attack the spec
+
+- crut
+
+
+```mermaid
+graph TD;
+
+A-->B;
+B-->C;
+C-->D;
+C-->E;
+E-->F;
+```
+
+
+```
+// reduced states at different locations:
+
+C: {
+  name: mix
+  altNames: []
+}
+
+D: {
+  name: mix
+  altNames: [mixmix]
+}
+F: {
+  name: mix irving
+  altNames: [mixmix, mixy]
+}
+```
+
+
+## Actions
+
+Arj:
+- merge TFK / BFE
+- make sure you can pass test vectors in envelope-spec
+- store meta-feed seed in `secret` file
+- organise next meeting
+
+Mix:
+- start licensing conversation
+- fusion prototype with crut
+- write up crut auto-merge spec
+  - example scenario
+  - breakdown possible outcomes
