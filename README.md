@@ -14,7 +14,7 @@ Format of a fusion id:
  - %sdfasldkrf;skjdf;laksjdf=.cloaked (private group)
 
 Usages:
- - Can mention a fusion identity and all members can used that as
+ - Can mention a fusion identity and all members can use that as
    notification
  - Can private message a fusion identity and all members will be able
    to decrypt the message and respond
