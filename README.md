@@ -1,3 +1,13 @@
+# Analysis Branch
+
+This branch contains files that are related to the formal analysis of the Fusion ID protocol.
+
+We model the protocol and desired security properties in the [Tamarin Prover], which we then use to check whether the protocol can provide these guarantees.
+
+[Tamarin Prover]: https://tamarin-prover.github.io/
+
+---
+
 # Fusion Identity Spec v1 (DRAFT)
 
 ![dance][dancegif]
