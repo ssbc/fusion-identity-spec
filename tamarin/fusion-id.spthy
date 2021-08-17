@@ -3,6 +3,9 @@ begin
 
 builtins: hashing, signing, asymmetric-encryption
 
+functions: box2kdf/1, ssbencrypt/3
+//ssbencrypt(Send_pk, Recv_pk, msg)
+
 // register new devices in the model
 rule Register_Device:
   let
@@ -25,38 +28,40 @@ rule Lose_Device:
     , Out(devSK) ]
 
 rule Initialize_FusionID:
-	let
-		devVK         = pk(devSK)
-		msg           = <'init', devVK, ~fid>
-		signedInitMsg = <msg, sign(msg, devSK)>
-	in
+    let
+        fid           = pk(~fusionSecret)
+        devVK         = pk(devSK)
+        msg           = <'init', devVK, fid>
+        signedInitMsg = <msg, sign(msg, devSK)>
+        
+    in
     [ !Device(devVK)
-    , Fr(~fid) ]
+    , Fr(~fusionSecret) ]
   --[
-  	InitFusionID(~fid, devVK),
-  	StateChange_AddToFusionID(devVK, ~fid, devVK),
-  	StateChange_LearnAboutFusionID(devVK, ~fid)
-  	 ]->
-    [ !FusionID(~fid)
-    , !State_IsInFusionID(devVK, ~fid, devVK)
-    , !State_KnowsFusionID(devVK, ~fid)
+    InitFusionID(fid, devVK, ~fusionSecret),
+    StateChange_AddToFusionID(devVK, fid, devVK),
+    StateChange_LearnAboutFusionID(devVK, fid)
+     ]->
+    [ !FusionID(fid)
+    , !State_IsInFusionID(devVK, fid, devVK)
+    , !State_KnowsFusionID(devVK, fid)
     , Out(signedInitMsg)
      ]
 
 rule ReceiveInitMsg:
-	let
-		initorVK = pk(initorSK)
-		msg = <'init', initorVK, fid>
-		signedInitMsg = <msg, sign(msg, initorSK)>
-	in
-	[	!Device(initorVK)
-	,	!Device(rcptVK)
-	,	In(signedInitMsg) ]
-	--[
-		StateChange_LearnAboutFusionID(rcptVK, fid),
-		StateChange_AddToFusionID(rcptVK, fid, initorVK)
-	]->
-	[
+    let
+        initorVK = pk(initorSK)
+        msg = <'init', initorVK, fid>
+        signedInitMsg = <msg, sign(msg, initorSK)>
+    in
+    [   !Device(initorVK)
+    ,   !Device(rcptVK)
+    ,   In(signedInitMsg) ]
+    --[
+        StateChange_LearnAboutFusionID(rcptVK, fid),
+        StateChange_AddToFusionID(rcptVK, fid, initorVK)
+    ]->
+    [
         !State_KnowsFusionID(rcptVK, fid),
         !State_IsInFusionID(rcptVK, fid, initorVK)
     ]
@@ -81,7 +86,7 @@ rule SendInvite:
   ]
 
 rule ReceiveInvite:
-	let
+    let
       invTxt = <'invite', fid, InvrVK, InveeVK>
       InvrVK = pk(InvrSK)
       sig    = sign(invTxt, InvrSK) 
@@ -107,7 +112,7 @@ rule AcceptInvite_oldstyle:
       InvrVK = pk(InvrSK)
       InveeVK = pk(InveeSK)
       invitation = <invTxt, sign(invTxt, InvrSK)>
-      acceptTxt = <'accept', fid, h(invitation)>
+      acceptTxt = <'accept', fid, InveeVK>
       acceptMsg = <acceptTxt, sign(acceptTxt, InveeSK)>
     in
     [
@@ -117,13 +122,13 @@ rule AcceptInvite_oldstyle:
         !State_IsInFusionID(InveeVK, fid, InvrVK)
     ]
   --[
-  		StateChange_InviteAccepted(InveeVK, fid, InveeVK),
-  		StateChange_AddToFusionID(InveeVK, fid, InveeVK),
-  		InvitedBy(InvrVK)
-  	]->
+        StateChange_InviteAccepted(InveeVK, fid, InveeVK),
+        StateChange_AddToFusionID(InveeVK, fid, InveeVK),
+        InvitedBy(InvrVK)
+    ]->
     [
-    	!State_IsInFusionID(InveeVK, fid, InveeVK),
-    	Out(acceptMsg)
+        !State_IsInFusionID(InveeVK, fid, InveeVK),
+        Out(acceptMsg)
     ]
 
 /* 
@@ -134,119 +139,297 @@ rule AcceptInvite_newstyle:
       acceptMsg = <acceptTxt, sign(acceptTxt, InveeSK)>
     in
     [
-    	!Device(InveeVK),
-		!State_IsInvited(InveeVK, fid, InveeVK)
+        !Device(InveeVK),
+        !State_IsInvited(InveeVK, fid, InveeVK)
     ]
   --[
-  		StateChange_InviteAccepted(InveeVK, fid, InveeVK),
-  		StateChange_AddToFusionID(InveeVK, fid, InveeVK) 
-  	]->
+        StateChange_InviteAccepted(InveeVK, fid, InveeVK),
+        StateChange_AddToFusionID(InveeVK, fid, InveeVK) 
+    ]->
     [
-    	!State_IsInFusionID(InveeVK, fid, InveeVK),
-    	Out(acceptMsg)
+        !State_IsInFusionID(InveeVK, fid, InveeVK),
+        Out(acceptMsg)
     ]
 */
 
 rule ReceiveAccept:
-	let
+    let
       acceptTxt = <'accept', fid, InveeVK>
       acceptMsg = <acceptTxt, sign(acceptTxt, InveeSK)>
-      inveeVK = pk(InveeSK)
+      inveeVK   = pk(InveeSK)
     in
-    [	
+    [   
         In(acceptMsg),
         !Device(InveeVK),
         !Device(rcptVK),
         !State_IsInvited(rcptVK, fid, InveeVK)
     ]
   --[
-      StateChange_AddToFusionID(rcptVK, fid, InveeVK)
+      //StateChange_AddToFusionID(rcptVK, fid, InveeVK)
+      StateChange_ConsentedToFusionID(rcptVK, fid, InveeVK)
     ]-> 
     [
-      !State_FusionIDContains(rcptVK, fid, InveeVK)
+      //!State_FusionIDContains(rcptVK, fid, InveeVK)
+      !State_ConsentsToFusionID(rcptVK, fid, InveeVK)
     ]
 
+rule SendEntrust:
+/*{
+  type: 'fusion/entrust',
+  secretKey: KEY, // make this consistent
+  fusionRoot: %init,
+  recps: [@fusionA, @feedDesktop]
+}*/
+  let
+      InvrVK     = pk(InvrSK)
+      fid        = pk(fusionSecret)
+      ciphertext = ssbencrypt(InvrVK, InveeVK, <'entrust', fid, fusionSecret>)
+      sig        = sign(ciphertext, InvrSK)
+      msg        = <ciphertext, sig>
+    in
+    [ !State_ConsentsToFusionID(InvrVK, fid, InvrVK)
+    , !Device(InvrVK)
+    , !Device(InveeVK)
+    ]
+  --[
+      EntrustSent(fid, InvrVK, InveeVK),
+      StateChange_MarkingEntrusted(InvrVK, fid, InveeVK)
+    ]->
+    [
+      Out(msg),
+      !State_IsEntrusted(InvrVK, fid, InveeVK)
+  ]
+
+
+rule ProofOfKey:
+/*{
+  type: fusion/proof-of-key,
+  consentId: %consent,
+  proof: sign(%consent + 'fusion/proof-of-key')
+  tangles: {
+    fusion: { root, previous }
+  }
+}*/
+let
+      InvrVK     = pk(InvrSK)
+      InveeVK    = pk(InveeSK)
+      fid        = pk(fusionSecret)
+      ciphertext = ssbencrypt(InvrVK, InveeVK, <'entrust', fid, fusionSecret>)
+      sig        = sign(ciphertext, InvrSK)
+      pok        = <ciphertext, sig>
+in
+[
+    In(ciphertext),
+    !Device(InvrVK),
+    !Device(InveeVK)
+] --[
+    StateChange_ProvidedProofOfKey(InveeVK, fid),
+    // add Invee to FusionID for both Invr and Invee
+    // does this need to be refactored into a new rule where others see the PoK, or is that implied
+    StateChange_AddToFusionID(InveeVK, fid, InveeVK),
+    StateChange_AddToFusionID(InvrVK, fid, InveeVK)
+    ]->
+[
+    Out(pok)
+]
+
+/* Left to do:
+rule SendMessage:
+
+rule ReceiveMessage:
+*/
+
+rule SendTombstone:
+/*{
+  type: 'fusion/tombstone',
+  reason: 'Lost @feedPhone, state of key is unknown',
+  tangles: {
+    fusion: {
+      root: %init,
+      previous: [%consent]
+    }
+  }
+}
+RULES:
+
+you cannot undo a tombstone
+once a tombstone has been published, the only messages which are allowed 
+to extend the tangle are other tombstone messages
+you MUST NOT DM a tombstoned identity
+NOTE:
+
+tangles can have divergent state (many tips to the graph). 
+We consider a tangle tombstoned if any of the tips are a tombstone message
+
+*/
+let 
+  fid               = pk(fusionSecret)
+  TomberVK          = pk(TomberSK)
+  tombstone_message = <'tombstoned', fid, TomberVK> 
+  sig = sign(tombstone_message, TomberSK)
+  msg = <tombstone_message, sig>
+in
+[
+  !Device(TomberVK),
+  !State_IsInFusionID(TomberVK, fid, TomberVK)
+  ]
+--[
+  StateChange_FID_Tombstoned(TomberVK, fid)
+]->
+[
+  Out(msg),
+  !State_IsTombstoned(TomberVK, fid)
+]
+
+
+rule ReceiveTombstone:
+let
+  fid       = pk(fusionSecret)
+  TomberVK  = pk(TomberSK)
+  TombeeVK  = pk(TombeeSK)
+  WitnessVK = pk(WitnessSK)
+  tombstone_message = <'tombstoned', fid, TomberVK> 
+  sig = sign(tombstone_message, TomberSK)
+  signed_msg = <tombstone_message, sig>
+in
+[
+  In(signed_msg),
+  !Device(TomberVK),
+  !Device(WitnessVK),
+  !State_IsInFusionID(WitnessVK, fid, TomberVK)
+]
+--[
+  StateChange_FID_Tombstoned(WitnessVK, fid)
+]->
+[
+  !State_IsTombstoned(WitnessVK, fid)
+]
+
+/*
+rule SendRedirect:
+
+rule AttestRedirect:
+
+rule FollowRedirect:
+*/
+
 /// not needed if we check signatures pattern-matching style:
-//restriction only_valid_signatures:
+//  restriction only_valid_signatures:
 //  For all traces that contain trace facts Signed(sig, txt, pk), only consider those traces, where verify(sig, txt, pk) returns true
 
 // for all sent invites, there does not exist an addtofusionid fact from before the invite was sent
 restriction dont_invite_members:
-	"All Invr Invee fid #tInvite.
-		InviteSent(fid, Invr, Invee) @ #tInvite ==> (
-			not Ex #tAddTo. (
-				StateChange_AddToFusionID(Invr, fid, Invee) @ #tAddTo &
-				#tAddTo < #tInvite
-			)
-		)"
+    "All Invr Invee fid #tInvite.
+        InviteSent(fid, Invr, Invee) @ #tInvite ==> (
+            not Ex #tAddTo. (
+                StateChange_AddToFusionID(Invr, fid, Invee) @ #tAddTo &
+                #tAddTo < #tInvite
+            )
+        )"
 
 lemma invite_induct [sources]:
 "All recv invee fid invr #tRecv. (
-		StateChange_IsInvited(recv, fid, invee) @ #tRecv &
-		InvitedBy(invr)              @ #tRecv
-	) ==> (
-		( Ex #send. InviteSent(fid, invr, invee) @ #send ) |
-		( Ex #lost. LoseDevice(invr) @ #lost)
-	)"
+        StateChange_IsInvited(recv, fid, invee) @ #tRecv &
+        InvitedBy(invr)              @ #tRecv
+    ) ==> (
+        ( Ex #send. InviteSent(fid, invr, invee) @ #send ) |
+        ( Ex #lost. LoseDevice(invr) @ #lost)
+    )"
 
 
 lemma only_accept_when_invited_trivial:
-	 "All Inver Invee fid #accept. (
-    	StateChange_InviteAccepted(Invee, fid, Invee) @ #accept &
-  		InvitedBy(Inver) @ #accept
+     "All Inver Invee fid #accept. (
+        StateChange_InviteAccepted(Invee, fid, Invee) @ #accept &
+        InvitedBy(Inver) @ #accept
     ) ==> (
-    	(Ex #rxInvite. (
-      		StateChange_IsInvited(Invee, fid, Invee) @ #rxInvite &
-      		#rxInvite < #accept
-		)) | (Ex #send. (
-			InviteSent(fid, Invee, Invee) @ #send &
-			#send < #accept
-		)) | (Ex #lost. (
-			LoseDevice(Inver) @ #lost &
-			#lost < #accept
-		))
+        (Ex #rxInvite. (
+            StateChange_IsInvited(Invee, fid, Invee) @ #rxInvite &
+            #rxInvite < #accept
+        )) | (Ex #send. (
+            InviteSent(fid, Invee, Invee) @ #send &
+            #send < #accept
+        )) | (Ex #lost. (
+            LoseDevice(Inver) @ #lost &
+            #lost < #accept
+        ))
     )"
 
 
 lemma only_rx_invite_when_invited_or_key_leaked_src [sources]:
 //  For all accepted invitations, the fusion id that we are talking about actually exists and the inviting party is in the identity
   "All Invee Inver fid #rxInvite. (
-  		(
-	  		StateChange_IsInvited(Invee, fid, Invee) @ #rxInvite &
-	  		InvitedBy(Inver) @ #rxInvite
-  		) ==> (
-			( Ex #invSent #inverIsInFusionID . (
-					InviteSent(fid, Inver, Invee) @ #invSent           					&
-					StateChange_AddToFusionID(Invee, fid, Inver) @ #inverIsInFusionID	&
-					#invSent < #rxInvite
-				)
-			) | ( Ex #deviceLost . (
-					LoseDevice(Inver) @ #deviceLost &
-					#deviceLost < #rxInvite
-				)
-			)
-		)
-	)"
-	
-	
+        (
+            StateChange_IsInvited(Invee, fid, Invee) @ #rxInvite &
+            InvitedBy(Inver) @ #rxInvite
+        ) ==> (
+            ( Ex #invSent #inverIsInFusionID . (
+                    InviteSent(fid, Inver, Invee) @ #invSent                            &
+                    StateChange_AddToFusionID(Invee, fid, Inver) @ #inverIsInFusionID   &
+                    #invSent < #rxInvite
+                )
+            ) | ( Ex #deviceLost . (
+                    LoseDevice(Inver) @ #deviceLost &
+                    #deviceLost < #rxInvite
+                )
+            )
+        )
+    )"
+    
+    
 lemma only_rx_invite_when_invited_or_key_leaked:
 //  For all accepted invitations, the fusion id that we are talking about actually exists and the inviting party is in the identity
   "All Invee Inver fid #rxInvite. (
-  		(
-	  		StateChange_IsInvited(Invee, fid, Invee) @ #rxInvite &
-	  		InvitedBy(Inver) @ #rxInvite
-  		) ==> (
-			( Ex #invSent #inverIsInFusionID . (
-					InviteSent(fid, Inver, Invee) @ #invSent           					&
-					StateChange_AddToFusionID(Invee, fid, Inver) @ #inverIsInFusionID	&
-					#invSent < #rxInvite
-				)
-			) | ( Ex #deviceLost . (
-					LoseDevice(Inver) @ #deviceLost &
-					#deviceLost < #rxInvite
-				)
-			)
-		)
-	)"
+        (
+            StateChange_IsInvited(Invee, fid, Invee) @ #rxInvite &
+            InvitedBy(Inver) @ #rxInvite
+        ) ==> (
+            ( Ex #invSent #inverIsInFusionID . (
+                    InviteSent(fid, Inver, Invee) @ #invSent                            &
+                    StateChange_AddToFusionID(Invee, fid, Inver) @ #inverIsInFusionID   &
+                    #invSent < #rxInvite
+                )
+            ) | ( Ex #deviceLost . (
+                    LoseDevice(Inver) @ #deviceLost &
+                    #deviceLost < #rxInvite
+                )
+            )
+        )
+    )"
+
+lemma key_is_entrusted_only_to_consenting_devices:
+// for all devices, only devices that have consented to the fusion ID are entrusted with the key
+  "All Entruster Entrustee fid #txEntrust. (
+    ( 
+        StateChange_MarkingEntrusted(Entruster, fid,  Entrustee) @ #txEntrust
+      & ( not Ex #loseDevice. (
+                (LoseDevice(Entruster) @ #loseDevice & #loseDevice < #txEntrust)
+            //| (LoseDevice(Entrustee) @ #loseDevice & #txEntrust  < #loseDevice)
+            )
+        )
+    ) ==> (
+        Ex #rxConsent. (
+            StateChange_ConsentedToFusionID(Entruster, fid, Entrustee) @ #rxConsent
+          & #rxConsent < #txEntrust
+        ) 
+    )
+)"
+
+/*
+
+(X and not Lost) => Y
+
+from def: a => b <-> (not a) or b
+
+not (X and not Lost) or Y
+
+not X or not not Lost or Y
+
+not X or Lost or Y
+
+X => (Lost or Y)
+
+*/
+
+
 
 end
