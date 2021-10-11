@@ -1,6 +1,10 @@
-# Fusion Identity Spec v1 (DRAFT)
+<!--
+SPDX-FileCopyrightText: 2021 Anders Rune Jensen
 
-![dance][dancegif]
+SPDX-License-Identifier: CC-BY-4.0
+-->
+
+# Fusion Identity Spec v1 (DRAFT)
 
 Purpose: primarily for multi-device
 
@@ -149,7 +153,7 @@ or has accepted an invite is allowed to create an invite.
 
 NOTE:
 - you can only invite other feedId
- 
+
 
 ### consent
 
@@ -193,7 +197,7 @@ NOTE:
 
 ### proof of key
 
-A way to publicly announce that you are in possession of private key 
+A way to publicly announce that you are in possession of private key
 
 ```js
 {
@@ -303,7 +307,7 @@ Is the redirect valid?
 {
   type: 'fusion/attestation',
   target: %redirectId,                    // static
-  position: confirm|reject|null,    
+  position: confirm|reject|null,
   reason: String,                         // optional
   tombstone: { reason }                   // optional
   tangles: {
@@ -335,7 +339,7 @@ consent -> entrust
 entrust -> proof-of-key
 tombstone -> attestation
 ```
- 
+
 ```
 // redirect tangle state changes
 redirect -> attestation
