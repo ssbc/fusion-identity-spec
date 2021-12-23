@@ -385,4 +385,8 @@ Ideas from that one:
    they are only allowed to read messages to the identity, not to add
    members or revoke the identity.
 
+Backchannel
+
+https://www.inkandswitch.com/backchannel/
+
 [dancegif]: assets/dance.gif
