@@ -388,5 +388,3 @@ Ideas from that one:
 Backchannel
 
 https://www.inkandswitch.com/backchannel/
-
-[dancegif]: assets/dance.gif
