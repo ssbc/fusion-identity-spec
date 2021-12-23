@@ -12,7 +12,7 @@ No removal of members, only tombstoning and potentially redirecting to a new
 
 Private messages uses box2.
 
-Format of a fusion id: ssb:identity/fusion/<KEY>
+Format of a fusion id: `ssb:identity/fusion/<KEY>`
 
 Usages:
  - Can mention a fusion identity and all members can use that as
