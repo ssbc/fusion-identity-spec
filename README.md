@@ -12,10 +12,7 @@ No removal of members, only tombstoning and potentially redirecting to a new
 
 Private messages uses box2.
 
-Format of a fusion id:
- - @sdfasldkrf;skjdf;laksjdf=.fusion-v1 (proposed)
- - @sdfasldkrf;skjdf;laksjdf=.ed25519 (current identities)
- - %sdfasldkrf;skjdf;laksjdf=.cloaked (private group)
+Format of a fusion id: ssb:identity/fusion/<KEY>
 
 Usages:
  - Can mention a fusion identity and all members can use that as
@@ -112,7 +109,7 @@ Start the new identity
 ```js
 {
   type: 'fusion/init',
-  id: @fusionA,
+  id: ssb:identity/fusion/id,
   tangles: {
     fusion: { root: null, previous: null }
   }
@@ -185,7 +182,7 @@ Only the one that invited a feed should send the entrust message
   type: 'fusion/entrust',
   secretKey: KEY, // make this consistent
   fusionRoot: %init,
-  recps: [@fusionA, @feedDesktop]
+  recps: [ssb:identity/fusion/id, @feedDesktop]
 }
 ```
 
@@ -265,8 +262,8 @@ to be attested before the new identity can start inviting members.
 ```js
 {
   type: 'fusion/redirect',
-  old: @sdfasldkrf;skjdf;laksjdf=.fusion-v1,  // FusionId
-  new: @ldkrf;skssjdfjdf;laksdfa=.fusion-v1,
+  old: ssb:identity/fusion/id1,
+  new: ssb:identity/fusion/id2,
   tangles: {
     redirect: {
       root: null,
