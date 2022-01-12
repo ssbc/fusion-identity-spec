@@ -6,13 +6,21 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Fusion Identity Spec v1 (DRAFT)
 
-Purpose: primarily for multi-device
+The fusion identity spec is a specification for how to relate multiple
+devices in such a way that they represent a new combined (fusion)
+identity. The primary purpose is an individual with multiple devices
+and thus multiple [SSB] identities. Only new members can be added to a
+fusion, there is no removal of members only tombstoning.
 
-No removal of members, only tombstoning and potentially redirecting to a new
+In the case where a fusion identity is tombstoned because a member is
+removed and another fusion must take its place, the concept of
+redirecting and attestations of these was considered. But instead of
+baking these concepts into the protocol in an initial version, we have
+decided to include them in an future version once we get more real
+world experience.
 
-Private messages uses box2.
-
-Format of a fusion id: `ssb:identity/fusion/<KEY>`
+The string representation of a fusion id is:
+`ssb:identity/fusion/<PUBLIC_KEY>`
 
 Usages:
  - Can mention a fusion identity and all members can use that as
@@ -22,13 +30,17 @@ Usages:
  - Acts as a public record of what feeds are part of an identity
    (discoverability)
  - Following a fusion identity for replication
+ - Messages can be shown as coming from the same identity across
+   multiple devices
 
 Out of scope for v1:
+ - Redirection
+ - Attestation of redirects
  - Private invitations to fusion identity
  - Inviting fusion identities to private groups
  - Use of fusion identity for authorisation logic
      - this is a priority, but will be addressed in subsequent versions
- - invite a fusion identity to an existing fusion identity
+ - Invite a fusion identity to an existing fusion identity
 
 ## Overview
 
@@ -51,167 +63,162 @@ fusion identity and can invite other devices.
                                 proof-of-key
 ```
 
-Later Alice is at a party and looses her rooted phone on the way
+If Alice is at a party and looses her rooted phone on the way
 home. From this point on she `tombstones` the fusion identity to tell
 other peers not to send private messages to the fusion identity any
 longer as those messages might be read by a third party.
-
-Later she luckily recovers her phone. She then goes through the same
-mechanism as originally to create a new fusion identity.
-
-```
-   @laptop                      @phone
-   -----------------            -----------------
-   init ->
-   invite: @phone ->
-                                <- consent
-   entrust ->
-                                proof-of-key
-```
-
-This leaves her with 2 fusion identities. Lets say that Bob was
-following her old fusion identity. Alice should create a `redirect`
-and `attest` the redirect from both devices. This should allow Bobs
-client to show what has happened. If Bob agrees that the redirect is
-good, he then `attest` the redirect, unfollow the old fusion identity
-and follows the new one.
-
-```
-   @laptop              @phone              @bob
-   ------------         -------------       -------------
-   redirect
-   attest
-                        attest
-                                             attest
-                                             unfollow
-                                             follow
-```
-
-
-Parts:
-  - Identity tangle
-    - tombstone
-      - justification
-      - rules
-  - Redirect tangle
-    - provides more infomation about the evolution of identities
-    - redirects are NOT a must have, but make automating some things easier (TODO)
-  - Attestation tangle
-
----
 
 ## Fusion Identity Operations:
 
 ### init
 
-Start the new identity
+Start the new identity. This results in two messages: an init message
+and a key to self.
 
 ```js
 {
   type: 'fusion/init',
-  id: ssb:identity/fusion/id,
+  id: 'ssb:identity/fusion/3h89vDLAcoi68wXZRZ2kVrXs0WT0vthGo9uW1XBPLhU=',
+  members: {
+    '@mmEKdNyVBtxQM3bwAVS8ujJvi/C1PR07tEQZVtyCp1c=.ed25519': 1
+  },
   tangles: {
     fusion: { root: null, previous: null }
   }
 }
 ```
 
-To keep things simple the public encryption key for DMs is the same as
-the identity.
-
-In order to figure out the members of an identity one needs to look at
-all the messages related to the tangle. These messages lives in
-different feeds. One can use invites to trace the members or use
-tangle sync to receive messages outside your follow scope.
-
-### invite
-
-Add a feed
-
-
-```js
-{
-  type: 'fusion/invite',
-  invited: [
-    @feedDesktop=.ed25519, // FeedId (my desktop)
-    @feedLaptop=.ed25519, // FeedId (my phone)
-  ],
-  tangles: {
-    fusion: {
-      root: %123asdasdsad=.sha256,  // Init MessageId
-      previous: [%init]
-    }
-  }
-}
-```
-
-Only a feed that was either the one that created the fusion identity
-or has accepted an invite is allowed to create an invite.
-
-NOTE:
-- you can only invite other feedId
-
-
-### consent
-
-Accept the invite
-
-```js
-{
-  type: 'fusion/consent',
-  tangles: {
-    fusion: {
-      root: %init, // Init MessageId
-      previous: [
-        %12312lk3j12;lk3j123.=sh256,
-        %1sadasd3j12;lk3j123.=sh256,
-      ]
-    }
-  }
-}
-```
-
-### entrust
-
-Give secret key to someone that has consented an invite
-
-Only the one that invited a feed should send the entrust message
+DM key to self:
 
 ```js
 {
   type: 'fusion/entrust',
-  secretKey: KEY, // make this consistent
-  fusionRoot: %init,
-  recps: [ssb:identity/fusion/id, @feedDesktop]
+  secretKey: 'k4eUDLq4rzUvWRxYjVM8PE64DiU6tidLEn+5ERax3OnbO0IXQhe4yQAHom/lnGjrV+hIi3fvSHoG/UuIuuecvA==',
+  rootId: '%ZxAJbfRTwhkhpD9viErN9zBzIEzrm6FTndaH/bEnbfI=.sha256',
+  recps: [
+    'ssb:identity/fusion/3h89vDLAcoi68wXZRZ2kVrXs0WT0vthGo9uW1XBPLhU=',
+    '@mmEKdNyVBtxQM3bwAVS8ujJvi/C1PR07tEQZVtyCp1c=.ed25519'
+  ]
 }
 ```
 
-NOTE:
-- identity init author should entrust the key to themselves
-  - otherwise if they have to rebuild their db's they won't have a copy!
-- we could have included a private section of the `fusion/invite` which included the key, but decided against this because it makes the flow less clear
-- adding an additional step to send the key after consent does not add significant latency because we are presumed to be in control of all the devices in this fusion identity
+`secretKey` is in base64.
 
-### proof of key
+To keep things simple the public encryption key for DMs is the same as
+the identity.
+
+The author of the message is now the first member of the fusion
+identity.
+
+Preconditions:
+ - The `id` must not be used in another fusion identity (different
+   root), in that case all fusions with the same id is considered
+   tombstoned.
+
+### invite
+
+Invite another feed to join a fusion.
+
+```js
+{
+  type: 'fusion/invite',
+  invited: {
+    '@2Cu6gvifd39hHvE/HkT4M7dP5KY5CZ+AsYzM1w2mtT8=.ed25519': 1
+  },
+  tangles: {
+    fusion: {
+      root: '%ZxAJbfRTwhkhpD9viErN9zBzIEzrm6FTndaH/bEnbfI=.sha256', // init
+      previous: ['%ZxAJbfRTwhkhpD9viErN9zBzIEzrm6FTndaH/bEnbfI=.sha256']
+    }
+  }
+}
+```
+
+Preconditions:
+ - The feed writing this message message must be a member
+ - You can invite multiple feeds
+ - Inviting yourself is considered an error
+
+### consent
+
+Accept an invitation message. One is not a member of the fusion yet.
+
+```js
+{
+  type: 'fusion/consent',
+  consented: { 
+    '@2Cu6gvifd39hHvE/HkT4M7dP5KY5CZ+AsYzM1w2mtT8=.ed25519': 1
+  },
+  tangles: {
+    fusion: {
+      root: '%ZxAJbfRTwhkhpD9viErN9zBzIEzrm6FTndaH/bEnbfI=.sha256', // init
+      previous: ['%ZxAJbfRTwhkhpD9viErN9zBzIEzrm6FTndaH/bEnbfI=.sha256']
+    }
+  }
+}
+```
+
+Preconditions:
+ - The author must be invited to the fusion
+ - The author must not have consented the fusion before
+ - The author must not be a member of the fusion
+
+### entrust
+
+Give secret key to someone that has consented an invite. This is
+similar to the message to sent self on `fusion/init`.
+
+```js
+{
+  type: 'fusion/entrust',
+  secretKey: 'k4eUDLq4rzUvWRxYjVM8PE64DiU6tidLEn+5ERax3OnbO0IXQhe4yQAHom/lnGjrV+hIi3fvSHoG/UuIuuecvA==',
+  rootId: '%ZxAJbfRTwhkhpD9viErN9zBzIEzrm6FTndaH/bEnbfI=.sha256',
+  consentId: '%J0IY7Xxx6OqUr9HXlhIQGJoad+saCEOxkYlkkViY8Oc=.sha256',
+  recps: [
+    'ssb:identity/fusion/3h89vDLAcoi68wXZRZ2kVrXs0WT0vthGo9uW1XBPLhU=',
+    '@2Cu6gvifd39hHvE/HkT4M7dP5KY5CZ+AsYzM1w2mtT8=.ed25519'
+  ]
+}
+```
+
+`secretKey` is in base64.
+
+Preconditions:
+ - The recipient must have consented the fusion invite
+
+NOTE:
+ - we could have included a private section of the `fusion/invite`
+   which included the key, but decided against this because it makes
+   the flow less clear
+ - adding an additional step to send the key after consent does not
+   add significant latency because we are presumed to be in control of
+   all the devices in this fusion identity
+
+### proof of key / member
 
 A way to publicly announce that you are in possession of private key
+and thus announce that you are now a member.
 
 ```js
 {
   type: fusion/proof-of-key,
-  consentId: %consent,
-  proof: sign(%consent + 'fusion/proof-of-key')
+  members: { 
+    '@2Cu6gvifd39hHvE/HkT4M7dP5KY5CZ+AsYzM1w2mtT8=.ed25519': 1
+  },
+  proofOfKey: 'fqhDYLkijSEKhYD3nQziMcszCFVxBaIAEZuue+1RA/dhm14OgryVHOXK6fhwsdlrFzj58HWBPZUAjVz4zafYCQ==.sig.ed25519',
   tangles: {
     fusion: { root, previous }
   }
 }
 ```
 
-This step is optional in the protocol
+`proofOfKey` must be signed by the entrusted fusion key as
+sign(%consentId + 'fusion/proof-of-key').
 
-NOTE:
-- we use the MessageId of the `fusion/consent` message because this is a unique publicly auditable record that's part of the tangle (while the entrust is not)
-
+Preconditions:
+ - The author must be have consented an invite in %consentId
+ - The author writes this proof-of-key message when it sees the
+   entrust, this ensures that they are in posession of the key
 
 ### tombstone / revoke
 
@@ -221,8 +228,7 @@ Given you have a shared private key, there is no easy way to "remove"
 a device from a fusion identity.
 
 Our solution is to "tombstone" identities and require you mint a new
-fusion identity with the devices you trust. (read on for tools to help
-with this transition - redirects + attestation).
+fusion identity with the devices you trust.
 
 ```js
 {
@@ -248,7 +254,49 @@ NOTE:
   consider a tangle tombstoned if any of the tips are a tombstone
   message
 
-## redirect operations
+## Flow
+
+A flow diagram of what action can follow another. Please note that
+multiple invites can happen concurrently. The tangle structure keeps
+track of the state of the identity. After a tombstone, the only valid
+operation on the identity is attestation.
+
+The `<state> -> tombstone` is left out in the list above because any
+state can lead to the tombstone state. Similarly `<state> -> invite`
+is also left out.
+
+```
+// identity tangle state changes
+invite -> consent
+invite -> attestation (deny)
+consent -> entrust
+entrust -> proof-of-key
+tombstone -> attestation
+```
+
+## Private messages
+
+Private messages uses box2.
+
+FIXME: precise definition, like: what slot does it use of box2?
+
+## Operations
+
+FIXME: add the methods we already have
+
+Ideally we would like methods that:
+
+ - Given a feed id lists all meta feeds this is a member of, and their
+   state (including redirects?)
+ - Given a fusion identity lists all active and pending members
+
+## Scenarios
+
+FIXME: describe some common scenarios and how they are handled
+
+## Out of scope for v1
+
+### redirect operations
 
 The purpose of redirects is to make it easy to point from a tombstoned
 record to it's replacement.
@@ -317,25 +365,8 @@ Everyone who agrees with a redirect must attest it publicly because it
 makes it harder for an adversary to try and hide the fact that a
 identity have been revoked by withholding messages from a single feed.
 
-## Flow
+### Flow
 
-A flow diagram of what action can follow another. Please note that
-multiple invites can happen concurrently. The tangle structure keeps
-track of the state of the identity. After a tombstone, the only valid
-operation on the identity is attestation.
-
-The `<state> -> tombstone` is left out in the list above because any
-state can lead to the tombstone state. Similarly `<state> -> invite`
-is also left out.
-
-```
-// identity tangle state changes
-invite -> consent
-invite -> attestation (deny)
-consent -> entrust
-entrust -> proof-of-key
-tombstone -> attestation
-```
 
 ```
 // redirect tangle state changes
@@ -348,24 +379,6 @@ redirect -> tombstone of redirect?
 attestation -> tombstone
 ```
 
-
-## Private messages
-
-Private messages uses box2.
-
-FIXME: precise definition, like: what slot does it use of box2?
-
-## Operations
-
-Ideally we would like methods that:
-
- - Given a feed id lists all meta feeds this is a member of, and their
-   state (including redirects?)
- - Given a fusion identity lists all active and pending members
-
-## Scenarios
-
-FIXME: describe some common scenarios and how they are handled
 
 ## Attacks
 
@@ -388,3 +401,6 @@ Ideas from that one:
 Backchannel
 
 https://www.inkandswitch.com/backchannel/
+
+
+[SSB]: https://github.com/ssbc/
