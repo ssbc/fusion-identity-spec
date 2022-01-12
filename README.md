@@ -220,39 +220,46 @@ Preconditions:
  - The author writes this proof-of-key message when it sees the
    entrust, this ensures that they are in posession of the key
 
-### tombstone / revoke
+### tombstone
 
-Nullify the identity.
+Nullify or revoke a fusion identity.
 
 Given you have a shared private key, there is no easy way to "remove"
-a device from a fusion identity.
-
-Our solution is to "tombstone" identities and require you mint a new
-fusion identity with the devices you trust.
+a device from a fusion identity. Our solution is to "tombstone"
+identities and require that you mint a new fusion identity with the
+devices you trust.
 
 ```js
 {
   type: 'fusion/tombstone',
-  reason: 'Lost @feedPhone, state of key is unknown',
+  tombstone: { 
+    set: { 
+      date: 1641983852373, 
+      reason: 'bye' 
+    }
+  },
   tangles: {
     fusion: {
-      root: %init,
-      previous: [%consent]
+      "root": "%IyaQ/IeV2PYpznyBFCO+qSz3Uu/8HtlqoBbwCE7+dvU=.sha256",
+      "previous": [
+        "%IyaQ/IeV2PYpznyBFCO+qSz3Uu/8HtlqoBbwCE7+dvU=.sha256"
+      ]
     }
   }
 }
 ```
 
-RULES:
-- you cannot undo a tombstone
-- once a tombstone has been published, the only messages which are
-  allowed to extend the tangle are other tombstone messages
-- you MUST NOT DM a tombstoned identity
+Preconditions:
+ - Only a member of a fusion identity can tombstone it
+ - There is no undo for a tombstone
+ - After a tombstone, the only messages which are allowed to extend
+   the tangle are other tombstone messages
 
 NOTE:
-- tangles can have divergent state (many tips to the graph). We
-  consider a tangle tombstoned if any of the tips are a tombstone
-  message
+ - you MUST NOT DM a tombstoned identity
+ - tangles can have divergent state (many tips to the graph). We
+   consider a tangle tombstoned if any of the tips are a tombstone
+   message
 
 ## Flow
 
