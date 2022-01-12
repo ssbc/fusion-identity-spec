@@ -194,7 +194,7 @@ NOTE:
    add significant latency because we are presumed to be in control of
    all the devices in this fusion identity
 
-### proof of key / member
+### proof-of-key / member
 
 A way to publicly announce that you are in possession of private key
 and thus announce that you are now a member.
@@ -283,23 +283,31 @@ tombstone -> attestation
 
 ## Private messages
 
-Private messages uses box2.
-
-FIXME: precise definition, like: what slot does it use of box2?
+Private messages are encrypted as [box2] using using the group key
+slot.
 
 ## Operations
 
-FIXME: add the methods we already have
+Besides the operations operating directly on a fusion identity
+described above: init, invite, consent, entrust, proof-of-key,
+tombstone, the following operations can be useful:
 
-Ideally we would like methods that:
+### read
 
- - Given a feed id lists all meta feeds this is a member of, and their
-   state (including redirects?)
- - Given a fusion identity lists all active and pending members
+Gets the current state of a fusion including the status of feeds such
+as invited, members, consented.
 
-## Scenarios
+### invitations
 
-FIXME: describe some common scenarios and how they are handled
+Which fusion identities have I been invited to and not yet responded to.
+
+### all
+
+The current active fusion identies
+
+### tombstoned
+
+All tombstoned fusion identies
 
 ## Out of scope for v1
 
@@ -411,3 +419,4 @@ https://www.inkandswitch.com/backchannel/
 
 
 [SSB]: https://github.com/ssbc/
+[box2]: https://github.com/ssbc/private-group-spec
