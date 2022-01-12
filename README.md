@@ -352,6 +352,8 @@ to be attested before the new identity can start inviting members.
 }
 ```
 
+It might also be useful to have [authenticated redirects].
+
 NOTE:
 - there can be many redirects, which ones you choose to trust are up
   to you (you might like to consider who authored it, and who's
@@ -420,3 +422,4 @@ https://www.inkandswitch.com/backchannel/
 
 [SSB]: https://github.com/ssbc/
 [box2]: https://github.com/ssbc/private-group-spec
+[authenticated redirects]: https://ssb-ngi-pointer.github.io/Audit%20Report_%20Secure%20Scuttlebutt%20Partial%20Replication%20and%20Fusion%20Identity.html#Suggestion-A-Explore-Protocol-Extension-for-Authentication-for-Redirects
