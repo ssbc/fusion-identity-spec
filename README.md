@@ -77,7 +77,8 @@ and a key to self.
 
 ```js
 {
-  type: 'fusion/init',
+  type: 'fusion',
+  subtype: 'fusion/init',
   id: 'ssb:identity/fusion/3h89vDLAcoi68wXZRZ2kVrXs0WT0vthGo9uW1XBPLhU=',
   members: {
     '@mmEKdNyVBtxQM3bwAVS8ujJvi/C1PR07tEQZVtyCp1c=.ed25519': 1
@@ -121,7 +122,8 @@ Invite another feed to join a fusion.
 
 ```js
 {
-  type: 'fusion/invite',
+  type: 'fusion',
+  subtype: 'fusion/invite',
   invited: {
     '@2Cu6gvifd39hHvE/HkT4M7dP5KY5CZ+AsYzM1w2mtT8=.ed25519': 1
   },
@@ -145,7 +147,8 @@ Accept an invitation message. One is not a member of the fusion yet.
 
 ```js
 {
-  type: 'fusion/consent',
+  type: 'fusion',
+  subtype: 'fusion/consent',
   consented: { 
     '@2Cu6gvifd39hHvE/HkT4M7dP5KY5CZ+AsYzM1w2mtT8=.ed25519': 1
   },
@@ -201,7 +204,8 @@ and thus announce that you are now a member.
 
 ```js
 {
-  type: fusion/proof-of-key,
+  type: 'fusion',
+  subtype: fusion/proof-of-key,
   members: { 
     '@2Cu6gvifd39hHvE/HkT4M7dP5KY5CZ+AsYzM1w2mtT8=.ed25519': 1
   },
@@ -231,7 +235,7 @@ devices you trust.
 
 ```js
 {
-  type: 'fusion/tombstone',
+  type: 'fusion',
   tombstone: { 
     set: { 
       date: 1641983852373, 
