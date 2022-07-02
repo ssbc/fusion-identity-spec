@@ -287,8 +287,9 @@ tombstone -> attestation
 
 ## Private messages
 
-Private messages are encrypted as [box2] using using the group key
-slot.
+Private messages uses box2.
+
+FIXME: precise definition. See https://github.com/ssbc/fusion-identity-spec/issues/6
 
 ## Operations
 
