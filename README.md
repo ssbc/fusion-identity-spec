@@ -130,7 +130,7 @@ Invite another feed to join a fusion.
   tangles: {
     fusion: {
       root: '%ZxAJbfRTwhkhpD9viErN9zBzIEzrm6FTndaH/bEnbfI=.sha256', // init
-      previous: ['%ZxAJbfRTwhkhpD9viErN9zBzIEzrm6FTndaH/bEnbfI=.sha256']
+      previous: ['%ZxAJbfRTwhkhpD9viErN9zBzIEzrm6FTndaH/bEnbfI=.sha256'] // init
     }
   }
 }
@@ -155,7 +155,7 @@ Accept an invitation message. One is not a member of the fusion yet.
   tangles: {
     fusion: {
       root: '%ZxAJbfRTwhkhpD9viErN9zBzIEzrm6FTndaH/bEnbfI=.sha256', // init
-      previous: ['%ZxAJbfRTwhkhpD9viErN9zBzIEzrm6FTndaH/bEnbfI=.sha256']
+      previous: ['%1UFhwpETE+dR/3IiqXpMIxsh5ga6DsCj6if8Q0JMYAE=.sha256'] // invite
     }
   }
 }
@@ -211,7 +211,9 @@ and thus announce that you are now a member.
   },
   proofOfKey: 'fqhDYLkijSEKhYD3nQziMcszCFVxBaIAEZuue+1RA/dhm14OgryVHOXK6fhwsdlrFzj58HWBPZUAjVz4zafYCQ==.sig.ed25519',
   tangles: {
-    fusion: { root, previous }
+    fusion: { 
+      root: '%ZxAJbfRTwhkhpD9viErN9zBzIEzrm6FTndaH/bEnbfI=.sha256', // init
+      previous: ['%71lcX2CY306hlZQW1UtoZ0uODm/RurnGlc8mCCjwn7w=.sha256'] // consent
   }
 }
 ```
@@ -244,10 +246,8 @@ devices you trust.
   },
   tangles: {
     fusion: {
-      "root": "%IyaQ/IeV2PYpznyBFCO+qSz3Uu/8HtlqoBbwCE7+dvU=.sha256",
-      "previous": [
-        "%IyaQ/IeV2PYpznyBFCO+qSz3Uu/8HtlqoBbwCE7+dvU=.sha256"
-      ]
+      root: '%ZxAJbfRTwhkhpD9viErN9zBzIEzrm6FTndaH/bEnbfI=.sha256', // init
+      previous: ['%Wo2vAn/LuCCDauDfbZEncCu/5eV/uuk2M1tIbT0DjC8=.sha256'] // proof-of-key
     }
   }
 }
