@@ -54,13 +54,14 @@ the possession of the key. At this point phone is now a member of the
 fusion identity and can invite other devices.
 
 ```
-   @laptop                      @phone
-   -----------------            -----------------
-   init ->
-   invite: @phone ->
-                                <- consent
-   entrust ->
-                                proof-of-key
+t   @laptop                                   @phone
+-   ---------------------------------------   -----------------
+1   init(@fuID)
+2   enc(entrust(sk), [@laptop, @fuID])
+3   invite(@phone)
+4                                             %cID = consent(yes)
+5   enc(entrust(sk, %cID), [@phone, @fuID])
+6                                             proof-of-key(%cID, proof)
 ```
 
 If Alice is at a party and looses her rooted phone on the way
@@ -143,7 +144,9 @@ Preconditions:
 
 ### consent
 
-Accept an invitation message. One is not a member of the fusion yet.
+Respond to an invitation message.
+
+For an accept:
 
 ```js
 {
@@ -161,9 +164,27 @@ Accept an invitation message. One is not a member of the fusion yet.
 }
 ```
 
+For a decline:
+
+```js
+{
+  type: 'fusion',
+  subtype: 'fusion/consent',
+  consented: { 
+    '@2Cu6gvifd39hHvE/HkT4M7dP5KY5CZ+AsYzM1w2mtT8=.ed25519': 0
+  },
+  tangles: {
+    fusion: {
+      root: '%ZxAJbfRTwhkhpD9viErN9zBzIEzrm6FTndaH/bEnbfI=.sha256', // init
+      previous: ['%1UFhwpETE+dR/3IiqXpMIxsh5ga6DsCj6if8Q0JMYAE=.sha256'] // invite
+    }
+  }
+}
+```
+
 Preconditions:
  - The author must be invited to the fusion
- - The author must not have consented the fusion before
+ - The author must not have consented positivily before
  - The author must not be a member of the fusion
 
 ### entrust
@@ -209,6 +230,7 @@ and thus announce that you are now a member.
   members: { 
     '@2Cu6gvifd39hHvE/HkT4M7dP5KY5CZ+AsYzM1w2mtT8=.ed25519': 1
   },
+  consentId: '%71lcX2CY306hlZQW1UtoZ0uODm/RurnGlc8mCCjwn7w=.sha256',
   proofOfKey: 'fqhDYLkijSEKhYD3nQziMcszCFVxBaIAEZuue+1RA/dhm14OgryVHOXK6fhwsdlrFzj58HWBPZUAjVz4zafYCQ==.sig.ed25519',
   tangles: {
     fusion: { 
