@@ -119,7 +119,7 @@ Preconditions:
 
 ### invite
 
-Invite another feed to join a fusion.
+Invite one or more feeds to join a fusion.
 
 ```js
 {
